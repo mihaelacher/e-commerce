@@ -1,0 +1,59 @@
+from fastapi import FastAPI
+
+from app.exceptions.checkout import (
+    EmptyOrderError,
+    InsufficientStockError,
+    OrderAlreadyProcessedError,
+    OrderItemNotFoundError,
+    OrderNotFoundError,
+)
+from app.exceptions.handlers import (
+    empty_order_handler,
+    insufficient_stock_handler,
+    order_already_processed_handler,
+    order_item_not_found_handler,
+    order_not_found_handler,
+    product_not_found_handler,
+)
+from app.exceptions.product import ProductNotFoundError
+from app.routers import checkout, product
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="E-Commerce API",
+        version="1.0.0",
+    )
+
+    app.include_router(product.router)
+    app.include_router(checkout.router)
+
+    app.add_exception_handler(
+        ProductNotFoundError,
+        product_not_found_handler,
+    )
+    app.add_exception_handler(
+        OrderNotFoundError,
+        order_not_found_handler,
+    )
+    app.add_exception_handler(
+        OrderItemNotFoundError,
+        order_item_not_found_handler,
+    )
+    app.add_exception_handler(
+        InsufficientStockError,
+        insufficient_stock_handler,
+    )
+    app.add_exception_handler(
+        EmptyOrderError,
+        empty_order_handler,
+    )
+    app.add_exception_handler(
+        OrderAlreadyProcessedError,
+        order_already_processed_handler,
+    )
+
+    return app
+
+
+app = create_app()
