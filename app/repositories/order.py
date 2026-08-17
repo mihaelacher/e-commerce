@@ -52,6 +52,6 @@ class OrderRepository(BaseRepository[OrderModel]):
         return (
             self.db.query(self.model)
             .filter(self.model.id == order_id)
-          .with_for_update()
-          .first()
+            .with_for_update()
+            .first()
         )

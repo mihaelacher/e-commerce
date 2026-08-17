@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.product import ProductModel
@@ -12,12 +13,13 @@ class ProductRepository(BaseRepository[ProductModel]):
         self,
         product_id: int,
     ) -> ProductModel | None:
-        return (
-            self.db.query(self.model)
-            .filter(self.model.id == product_id)
+        stmt = (
+            select(self.model)
+            .where(self.model.id == product_id)
             .with_for_update()
-            .first()
         )
+
+        return self.db.scalar(stmt)
 
     def create(self, data: dict) -> ProductModel:
         product = ProductModel(**data)

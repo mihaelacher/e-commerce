@@ -2,7 +2,6 @@ from sqlalchemy.orm import Session
 
 from app.core.database import transaction
 from app.enums.order import OrderStatus
-from app.enums.payment_provider import PaymentProvider
 from app.enums.payment_status import PaymentStatus
 from app.exceptions.checkout import OrderNotFoundError
 from app.exceptions.payment import OrderCannotBePaidError
@@ -41,7 +40,7 @@ def create_payment(
         payment = payment_repository.create(
             order_id=order.id,
             amount=order.total,
-            provider=PaymentProvider.MOCK,
+            provider=provider.type,
             idempotency_key=idempotency_key,
         )
 

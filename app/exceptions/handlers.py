@@ -72,7 +72,7 @@ async def order_already_processed_handler(
     )
 
 
-async def order_can_be_paid_handler(
+async def order_cannot_be_paid_handler(
     _: Request,
     exc: OrderCannotBePaidError,
 ) -> JSONResponse:

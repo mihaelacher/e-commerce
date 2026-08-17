@@ -3,7 +3,6 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.enums.payment_provider import PaymentProvider
 from app.models.payment import PaymentModel
 from app.repositories.base import BaseRepository
 
@@ -29,7 +28,7 @@ class PaymentRepository(BaseRepository[PaymentModel]):
         self,
         order_id: int,
         amount: Decimal,
-        provider: PaymentProvider,
+        provider: str,
         idempotency_key: str,
     ) -> PaymentModel:
         payment = PaymentModel(

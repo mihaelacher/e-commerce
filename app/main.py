@@ -11,12 +11,14 @@ from app.exceptions.handlers import (
     empty_order_handler,
     insufficient_stock_handler,
     order_already_processed_handler,
+    order_cannot_be_paid_handler,
     order_item_not_found_handler,
     order_not_found_handler,
     product_not_found_handler,
 )
+from app.exceptions.payment import OrderCannotBePaidError
 from app.exceptions.product import ProductNotFoundError
-from app.routers import checkout, product
+from app.routers import checkout, product, payment
 
 
 def create_app() -> FastAPI:
@@ -27,6 +29,7 @@ def create_app() -> FastAPI:
 
     app.include_router(product.router)
     app.include_router(checkout.router)
+    app.include_router(payment.router)
 
     app.add_exception_handler(
         ProductNotFoundError,
@@ -51,6 +54,10 @@ def create_app() -> FastAPI:
     app.add_exception_handler(
         OrderAlreadyProcessedError,
         order_already_processed_handler,
+    )
+    app.add_exception_handler(
+        OrderCannotBePaidError,
+        order_cannot_be_paid_handler,
     )
 
     return app

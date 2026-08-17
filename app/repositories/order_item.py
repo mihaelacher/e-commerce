@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.models.order import OrderModel
@@ -34,11 +35,9 @@ class OrderItemRepository(BaseRepository[OrderItemModel]):
         order_id: int,
         product_id: int,
     ) -> OrderItemModel | None:
-        return (
-            self.db.query(self.model)
-            .filter(
-                self.model.order_id == order_id,
-                self.model.product_id == product_id,
-            )
-            .first()
+        stmt = select(self.model).where(
+            self.model.order_id == order_id,
+            self.model.product_id == product_id,
         )
+
+        return self.db.scalar(stmt)

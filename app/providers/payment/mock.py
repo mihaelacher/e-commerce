@@ -2,10 +2,13 @@ import random
 from decimal import Decimal
 import uuid
 
+from app.enums.payment_provider import PaymentProvider
 from app.providers.payment.base import PaymentResult
 
 
 class MockPaymentProvider:
+    type = PaymentProvider.MOCK
+
     def __init__(self, should_succeed: bool | None = None):
         self.should_succeed = should_succeed
 
