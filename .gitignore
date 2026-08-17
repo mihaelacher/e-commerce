@@ -46,3 +46,5 @@ celerybeat-schedule.*
 # Docker / local containers
 postgres-data/
 redis-data/
+
+*test*.txt

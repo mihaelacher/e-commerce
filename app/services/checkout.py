@@ -190,7 +190,7 @@ def checkout(
         if not order.items:
             raise EmptyOrderError(order_id)
 
-        for item in order.items:
+        for item in sorted(order.items, key=lambda item: item.product_id):
             product = product_repository.get_with_lock(item.product_id)
 
             if product is None:
