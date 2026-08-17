@@ -11,6 +11,7 @@ from app.models import (
     ProductModel,
     OrderModel,
     OrderItemModel,
+    PaymentModel,
 )
 
 # this is the Alembic Config object, which provides

@@ -11,6 +11,7 @@ from app.enums.order import OrderStatus
 
 if TYPE_CHECKING:
     from app.models.order_item import OrderItemModel
+    from app.models.payment import PaymentModel
 
 
 class OrderModel(Base):
@@ -101,3 +102,8 @@ class OrderModel(Base):
         String(255),
         nullable=False,
     )
+
+    payment: Mapped["PaymentModel | None"] = relationship(
+    back_populates="order",
+    uselist=False,
+)

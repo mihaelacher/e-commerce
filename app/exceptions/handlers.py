@@ -9,6 +9,7 @@ from app.exceptions.checkout import (
     OrderNotFoundError,
 )
 from app.exceptions.product import ProductNotFoundError
+from app.exceptions.payment import OrderCannotBePaidError
 
 
 async def product_not_found_handler(
@@ -64,6 +65,16 @@ async def empty_order_handler(
 async def order_already_processed_handler(
     _: Request,
     exc: OrderAlreadyProcessedError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": str(exc)},
+    )
+
+
+async def order_can_be_paid_handler(
+    _: Request,
+    exc: OrderCannotBePaidError,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,

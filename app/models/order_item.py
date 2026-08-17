@@ -27,7 +27,7 @@ class OrderItemModel(Base):
         Index(
             "ix_order_items_product_id",
             "product_id",
-    ),
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

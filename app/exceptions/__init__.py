@@ -6,6 +6,7 @@ from app.exceptions.checkout import (
     InsufficientStockError,
     EmptyOrderError,
 )
+from app.exceptions.payment import OrderCannotBePaidError 
 
 __all__ = [
     "ProductNotFoundError",
@@ -14,4 +15,5 @@ __all__ = [
     "OrderAlreadyProcessedError",
     "InsufficientStockError",
     "EmptyOrderError",
+    "OrderCannotBePaidError",
 ]
