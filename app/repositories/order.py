@@ -9,7 +9,6 @@ class OrderRepository(BaseRepository[OrderModel]):
     def __init__(self, db: Session):
         super().__init__(OrderModel, db)
 
-
     def get_with_items(
         self,
         order_id: int,
@@ -22,7 +21,6 @@ class OrderRepository(BaseRepository[OrderModel]):
 
         return self.db.scalar(stmt)
 
-
     def create(
         self,
         email: str,
@@ -31,27 +29,27 @@ class OrderRepository(BaseRepository[OrderModel]):
 
         return self.add(order)
 
-
     def get_with_items_for_update(
         self,
         order_id: int,
     ) -> OrderModel | None:
-        return (
-            self.db.query(self.model)
+        stmt = (
+            select(self.model)
             .options(selectinload(self.model.items))
-            .filter(self.model.id == order_id)
+            .where(self.model.id == order_id)
             .with_for_update()
-            .first()
         )
 
+        return self.db.scalar(stmt)
 
     def get_for_update(
-          self,
-          order_id: int,
+        self,
+        order_id: int,
     ) -> OrderModel | None:
-        return (
-            self.db.query(self.model)
-            .filter(self.model.id == order_id)
+        stmt = (
+            select(self.model)
+            .where(self.model.id == order_id)
             .with_for_update()
-            .first()
         )
+
+        return self.db.scalar(stmt)

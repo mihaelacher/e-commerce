@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.enums.payment_status import PaymentStatus
@@ -64,14 +64,16 @@ class PaymentRepository(BaseRepository[PaymentModel]):
 
 
     def has_successful_payment(self, order_id: int) -> bool:
-        return (
-            self.db.query(PaymentModel)
-            .filter(
-                PaymentModel.order_id == order_id,
-                PaymentModel.status ==  PaymentStatus.PAID,
+        stmt = (
+            select(self.model.id)
+            .where(
+                self.model.order_id == order_id,
+                self.model.status == PaymentStatus.PAID,
             )
-            .first()
+            .limit(1)
         )
+
+        return self.db.scalar(stmt) is not None
 
     def claim_for_processing(
         self,
@@ -79,28 +81,22 @@ class PaymentRepository(BaseRepository[PaymentModel]):
         processing_timeout: timedelta,
     ) -> bool:
         now = datetime.now(timezone.utc)
-        threshold = now - processing_timeout
+        threshold = now - processing_timeout    
 
-        updated = (
-            self.db.query(PaymentModel)
-            .filter(
-                PaymentModel.id == payment_id,
-                PaymentModel.status == PaymentStatus.PENDING,
-                    (
-                        PaymentModel.processing_started_at.is_(None)
-                        | (
-                            PaymentModel.processing_started_at < threshold
-                        )
-                    ),
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.id == payment_id,
+                self.model.status == PaymentStatus.PENDING,
+                (
+                    self.model.processing_started_at.is_(None)
+                    | (self.model.processing_started_at < threshold)
+                ),
             )
-            .update(
-                {
-                    PaymentModel.processing_started_at: now,
-                },
-                synchronize_session=False,
-            )
-        )
-    
-        self.db.commit()
-    
-        return updated == 1 
+            .values(processing_started_at=now)
+        )   
+
+        result = self.db.execute(stmt)
+        self.db.commit()    
+
+        return result.rowcount == 1

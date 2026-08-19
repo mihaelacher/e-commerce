@@ -1,6 +1,10 @@
 from typing import Generic, Type, TypeVar
+
+from sqlalchemy import select
 from sqlalchemy.orm import Session
+
 from app.core.database import Base
+
 
 ModelType = TypeVar("ModelType", bound=Base)
 
@@ -11,14 +15,25 @@ class BaseRepository(Generic[ModelType]):
         self.db = db
 
     def get(self, id: int) -> ModelType | None:
-        return self.db.query(self.model).filter(self.model.id == id).first()
+        stmt = (
+            select(self.model)
+            .where(self.model.id == id)
+        )
+
+        return self.db.scalar(stmt)
 
     def list_all(
         self,
         skip: int = 0,
         limit: int = 100,
     ) -> list[ModelType]:
-        return self.db.query(self.model).offset(skip).limit(limit).all()
+        stmt = (
+            select(self.model)
+            .offset(skip)
+            .limit(limit)
+        )
+
+        return list(self.db.scalars(stmt).all())
 
     def add(self, obj: ModelType) -> ModelType:
         self.db.add(obj)
