@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
-from alembic.environment import TYPE_CHECKING
 from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Numeric, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -34,7 +34,6 @@ class PaymentModel(Base):
     order_id: Mapped[int] = mapped_column(
         ForeignKey("orders.id"),
         nullable=False,
-        unique=True,
     )
 
     amount: Mapped[Decimal] = mapped_column(
@@ -72,4 +71,9 @@ class PaymentModel(Base):
     idempotency_key: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
+    )
+
+    processing_started_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
     )

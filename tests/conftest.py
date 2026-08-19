@@ -57,3 +57,8 @@ def db(test_db):
         yield db
     finally:
         db.close()
+
+
+@pytest.fixture
+def testing_session_factory():
+    return TestingSessionLocal

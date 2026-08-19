@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     project_name: str = "E-Commerce API"
     api_v1_str: str = "/api/v1"
-    redis_url: str = "redis://localhost:6379/0"
+    redis_url: str = "redis://redis:6379/0"
     celery_broker_url: str | None = None
     celery_result_backend: str | None = None
 

@@ -14,9 +14,10 @@ from app.exceptions.handlers import (
     order_cannot_be_paid_handler,
     order_item_not_found_handler,
     order_not_found_handler,
+    payment_not_found_handler,
     product_not_found_handler,
 )
-from app.exceptions.payment import OrderCannotBePaidError
+from app.exceptions.payment import OrderCannotBePaidError, PaymentNotFoundError
 from app.exceptions.product import ProductNotFoundError
 from app.routers import checkout, product, payment
 
@@ -58,6 +59,10 @@ def create_app() -> FastAPI:
     app.add_exception_handler(
         OrderCannotBePaidError,
         order_cannot_be_paid_handler,
+    )
+    app.add_exception_handler(
+        PaymentNotFoundError,
+        payment_not_found_handler
     )
 
     return app

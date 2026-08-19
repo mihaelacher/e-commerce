@@ -22,6 +22,8 @@ services:
     command: celery -A app.tasks.celery.celery_app worker --loglevel=info
     env_file:
       - .env
+    environment:
+      REDIS_URL: redis://redis:6379/0
     depends_on:
       - db
       - redis

@@ -4,12 +4,13 @@ from app.core.database import transaction
 from app.enums.order import OrderStatus
 from app.enums.payment_status import PaymentStatus
 from app.exceptions.checkout import OrderNotFoundError
-from app.exceptions.payment import OrderCannotBePaidError
+from app.exceptions.payment import OrderCannotBePaidError, PaymentNotFoundError
 from app.models.order import OrderModel
 from app.models.payment import PaymentModel
 from app.providers.payment.base import PaymentGateway
 from app.repositories.order import OrderRepository
 from app.repositories.payment import PaymentRepository
+from app.tasks.payment import process_payment
 
 
 def create_payment(
@@ -35,6 +36,9 @@ def create_payment(
         if existing_payment is not None:
             return existing_payment
 
+        if payment_repository.has_successful_payment(order_id):
+            raise OrderCannotBePaidError(order_id)
+
         ensure_order_can_be_paid(order)
 
         payment = payment_repository.create(
@@ -44,21 +48,51 @@ def create_payment(
             idempotency_key=idempotency_key,
         )
 
-        result = provider.charge(
-            amount=payment.amount,
-            idempotency_key=idempotency_key,
-        )
+    process_payment.delay(payment.id)    
 
-        if result.success:
-            payment.status = PaymentStatus.PAID
-            payment.transaction_id = result.transaction_id
-            order.status = OrderStatus.PAID
-        else:
-            payment.status = PaymentStatus.FAILED
-
-        return payment
+    return payment
 
 
 def ensure_order_can_be_paid(order: OrderModel) -> None:
     if order.status != OrderStatus.PAYMENT_PENDING:
         raise OrderCannotBePaidError(order.id)
+
+
+def handle_payment_webhook(
+    *,
+    db: Session,
+    payload: dict,
+    provider: PaymentGateway,
+) -> PaymentModel:
+    result = provider.parse_webhook(payload)
+
+    payment_repository = PaymentRepository(db)
+    order_repository = OrderRepository(db)
+
+    with transaction(db):
+        payment = payment_repository.get_by_transaction_id_for_update(
+            result.transaction_id
+        )
+
+        if payment is None:
+            raise PaymentNotFoundError(
+                result.transaction_id
+            )
+
+        if payment.status != PaymentStatus.PENDING:
+            return payment
+
+        if result.success:
+            payment.status = PaymentStatus.PAID
+        else:
+            payment.status = PaymentStatus.FAILED
+
+        if result.success:
+            order = order_repository.get_for_update(payment.order_id)
+
+            if order is None:
+                raise OrderNotFoundError(payment.order_id)
+
+            order.status = OrderStatus.PAID
+
+    return payment

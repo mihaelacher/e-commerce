@@ -16,3 +16,17 @@ class PaymentGateway(Protocol):
         idempotency_key: str,
     ) -> PaymentResult:
         ...
+
+
+    def parse_webhook(
+        self,
+        data: dict,
+    ) -> PaymentResult:
+        ...    
+
+    def verify_webhook(
+        self,
+        data: dict,
+        signature: str,
+    ) -> bool:
+        ...    
