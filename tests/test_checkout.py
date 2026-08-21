@@ -310,7 +310,7 @@ def test_checkout_order(client):
     data = response.json()
 
     assert data["id"] == order["id"]
-    assert data["status"] == "completed"
+    assert data["status"] == "payment_pending"
     assert data["subtotal"] == "200.00"
     assert data["tax"] == "40.00"
     assert data["shipping"] == "0.00"

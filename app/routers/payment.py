@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, Header
+from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.dependencies import get_payment_provider
+from app.providers.payment.base import PaymentGateway
 from app.schemas.payment import PaymentResponse
 from app.services.payment import create_payment, handle_payment_webhook
-from app.providers.payment.base import PaymentGateway
-
 
 router = APIRouter(
     prefix="/payments",
@@ -31,7 +30,7 @@ def pay_order(
         provider=provider,
     )
 
-@router.post("/webhook")
+
 @router.post("/webhook")
 def payment_webhook(
     payload: dict,

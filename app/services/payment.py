@@ -10,6 +10,7 @@ from app.models.payment import PaymentModel
 from app.providers.payment.base import PaymentGateway
 from app.repositories.order import OrderRepository
 from app.repositories.payment import PaymentRepository
+from app.repositories.product import ProductRepository
 from app.tasks.payment import process_payment
 
 
@@ -68,6 +69,7 @@ def handle_payment_webhook(
 
     payment_repository = PaymentRepository(db)
     order_repository = OrderRepository(db)
+    product_repository = ProductRepository(db)
 
     with transaction(db):
         payment = payment_repository.get_by_transaction_id_for_update(
@@ -82,17 +84,24 @@ def handle_payment_webhook(
         if payment.status != PaymentStatus.PENDING:
             return payment
 
+        order = order_repository.get_with_items_for_update(payment.order_id)
+
+        if order is None:
+            raise OrderNotFoundError(payment.order_id)
+
         if result.success:
             payment.status = PaymentStatus.PAID
+            order.status = OrderStatus.PAID
         else:
             payment.status = PaymentStatus.FAILED
 
-        if result.success:
-            order = order_repository.get_for_update(payment.order_id)
+            if order.status == OrderStatus.PAYMENT_PENDING:
+                for item in sorted(order.items, key=lambda item: item.product_id):
+                    product = product_repository.get_with_lock(item.product_id)
 
-            if order is None:
-                raise OrderNotFoundError(payment.order_id)
+                    if product is not None:
+                        product.stock += item.quantity
 
-            order.status = OrderStatus.PAID
+                order.status = OrderStatus.PENDING
 
     return payment

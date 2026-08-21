@@ -206,7 +206,7 @@ def checkout(
             product.stock -= item.quantity
 
         calculate_order_totals(order)
-        order.status = OrderStatus.COMPLETED
+        order.status = OrderStatus.PAYMENT_PENDING
 
     queue_order_confirmation(order)
     return order

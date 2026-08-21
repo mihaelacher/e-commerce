@@ -103,7 +103,7 @@ class OrderModel(Base):
         nullable=False,
     )
 
-    payment: Mapped["PaymentModel | None"] = relationship(
-    back_populates="order",
-    uselist=False,
-)
+    payments: Mapped[list["PaymentModel"]] = relationship(
+        back_populates="order",
+        cascade="all, delete-orphan",
+    )

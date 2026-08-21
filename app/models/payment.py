@@ -2,7 +2,15 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, ForeignKey, Numeric, String, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Numeric,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -65,7 +73,7 @@ class PaymentModel(Base):
     )
 
     order: Mapped["OrderModel"] = relationship(
-        back_populates="payment",
+        back_populates="payments",
     )
 
     idempotency_key: Mapped[str] = mapped_column(

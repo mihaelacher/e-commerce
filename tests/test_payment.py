@@ -10,9 +10,12 @@ from app.enums.payment_status import PaymentStatus
 from app.exceptions.payment import OrderCannotBePaidError
 from app.exceptions.payment import OrderCannotBePaidError
 from app.models.order import OrderModel
+from app.models.order_item import OrderItemModel
 from app.models.payment import PaymentModel
+from app.models.product import ProductModel
 from app.providers.payment.base import PaymentResult
 from app.providers.payment.mock import MockPaymentProvider
+from app.services.checkout import checkout
 from app.services.payment import create_payment, handle_payment_webhook
 from app.tasks.payment import process_payment
 from tests.conftest import db
@@ -219,6 +222,50 @@ def test_process_payment_failure(
     assert payment.transaction_id == "mock_transaction_456"
     assert payment.status == PaymentStatus.PENDING
 
+
+def test_process_payment_retries_and_releases_claim(
+    db,
+    monkeypatch,
+    testing_session_factory,
+):
+    order = create_order(db)
+
+    payment = PaymentModel(
+        order_id=order.id,
+        amount=Decimal("100.00"),
+        status=PaymentStatus.PENDING,
+        provider=PaymentProvider.MOCK,
+        idempotency_key="test-key-retry",
+    )
+
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+
+    class FailingProvider:
+        def charge(self, amount, idempotency_key):
+            raise RuntimeError("provider unavailable")
+
+    monkeypatch.setattr(
+        "app.tasks.payment.get_payment_provider",
+        lambda: FailingProvider(),
+    )
+    monkeypatch.setattr(
+        "app.tasks.payment.SessionLocal",
+        testing_session_factory,
+    )
+
+    with pytest.raises(RuntimeError, match="provider unavailable"):
+        process_payment(payment.id)
+
+    db.expire_all()
+    payment = db.get(PaymentModel, payment.id)
+
+    assert payment.status == PaymentStatus.PENDING
+    assert payment.processing_started_at is None
+    assert process_payment.autoretry_for == (Exception,)
+    assert process_payment.max_retries == 3
+
 def test_payment_webhook_success(db):
     order = create_order(db)
 
@@ -282,6 +329,57 @@ def test_payment_webhook_failure(db):
     db.refresh(order)
 
     assert payment.status == PaymentStatus.FAILED
+    assert order.status == OrderStatus.PENDING
+
+
+def test_failed_payment_releases_stock_and_allows_checkout_again(db):
+    order = create_order(db)
+    product = ProductModel(name="Keyboard", price=Decimal("50.00"), stock=3)
+    db.add(product)
+    db.flush()
+
+    order_item = OrderItemModel(
+        order_id=order.id,
+        product_id=product.id,
+        quantity=2,
+        unit_price=product.price,
+        total_price=Decimal("100.00"),
+    )
+    db.add(order_item)
+    product.stock -= order_item.quantity
+
+    payment = PaymentModel(
+        order_id=order.id,
+        amount=Decimal("100.00"),
+        status=PaymentStatus.PENDING,
+        provider=PaymentProvider.MOCK,
+        idempotency_key="test-key-stock-release",
+        transaction_id="mock_transaction_stock_release",
+    )
+    db.add(payment)
+    db.commit()
+
+    handle_payment_webhook(
+        db=db,
+        payload={
+            "status": "failed",
+            "transaction_id": "mock_transaction_stock_release",
+        },
+        provider=MockPaymentProvider(),
+    )
+
+    db.refresh(product)
+    db.refresh(order)
+
+    assert product.stock == 3
+    assert order.status == OrderStatus.PENDING
+
+    checkout(db, order.id)
+
+    db.refresh(product)
+    db.refresh(order)
+
+    assert product.stock == 1
     assert order.status == OrderStatus.PAYMENT_PENDING
 
 def test_payment_webhook_ignores_processed_payment(db):
@@ -345,6 +443,13 @@ def test_failed_payment_can_be_retried(db):
     db.refresh(order)
 
     assert order.status == OrderStatus.PAYMENT_PENDING    
+
+    db.refresh(order)
+
+    assert {payment.id for payment in order.payments} == {
+        failed_payment.id,
+        retry_payment.id,
+    }
 
 
 def test_payment_cannot_be_created_for_already_paid_order(db):
