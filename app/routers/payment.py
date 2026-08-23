@@ -9,7 +9,7 @@ from app.services.payment import create_payment, handle_payment_webhook
 
 router = APIRouter(
     prefix="/payments",
-    tags=["payments"],
+    tags=["Payments"],
 )
 
 

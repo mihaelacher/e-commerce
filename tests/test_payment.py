@@ -266,7 +266,7 @@ def test_process_payment_retries_and_releases_claim(
     assert process_payment.autoretry_for == (Exception,)
     assert process_payment.max_retries == 3
 
-def test_payment_webhook_success(db):
+def test_payment_webhook_success(db, monkeypatch):
     order = create_order(db)
 
     payment = PaymentModel(
@@ -283,6 +283,12 @@ def test_payment_webhook_success(db):
     db.refresh(payment)
 
     provider = MockPaymentProvider()
+    confirmation_calls = []
+
+    monkeypatch.setattr(
+        "app.services.payment.send_order_confirmation_task.delay",
+        lambda **kwargs: confirmation_calls.append(kwargs),
+    )
 
     payment = handle_payment_webhook(
         db=db,
@@ -297,9 +303,16 @@ def test_payment_webhook_success(db):
 
     assert payment.status == PaymentStatus.PAID
     assert order.status == OrderStatus.PAID   
+    assert confirmation_calls == [
+        {
+            "recipient": "test@example.com",
+            "order_id": order.id,
+            "total": "100.00",
+        }
+    ]
 
 
-def test_payment_webhook_failure(db):
+def test_payment_webhook_failure(db, monkeypatch):
     order = create_order(db)
 
     payment = PaymentModel(
@@ -316,6 +329,11 @@ def test_payment_webhook_failure(db):
     db.refresh(payment)
 
     provider = MockPaymentProvider()
+
+    monkeypatch.setattr(
+        "app.services.payment.send_order_confirmation_task.delay",
+        lambda **kwargs: pytest.fail("Confirmation must not be sent for failed payment"),
+    )
 
     payment = handle_payment_webhook(
         db=db,

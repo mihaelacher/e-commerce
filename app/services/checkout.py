@@ -16,7 +16,6 @@ from app.models.order import OrderModel
 from app.repositories.order import OrderRepository
 from app.repositories.order_item import OrderItemRepository
 from app.repositories.product import ProductRepository
-from app.tasks.email import send_order_confirmation_task
 
 
 def get_order_with_items(
@@ -164,14 +163,6 @@ def calculate_order_totals(
     order.total = order.subtotal + order.tax + order.shipping - order.discount
 
 
-def queue_order_confirmation(order: OrderModel) -> None:
-    send_order_confirmation_task.delay(
-        recipient=order.email,
-        order_id=order.id,
-        total=str(order.total),
-    )
-
-
 def checkout(
     db: Session,
     order_id: int,
@@ -208,7 +199,6 @@ def checkout(
         calculate_order_totals(order)
         order.status = OrderStatus.PAYMENT_PENDING
 
-    queue_order_confirmation(order)
     return order
 
 
