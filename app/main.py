@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.exceptions.ai import AIProviderUnavailableError
 from app.exceptions.checkout import (
     EmptyOrderError,
     InsufficientStockError,
@@ -8,6 +9,7 @@ from app.exceptions.checkout import (
     OrderNotFoundError,
 )
 from app.exceptions.handlers import (
+    ai_provider_unavailable_handler,
     empty_order_handler,
     insufficient_stock_handler,
     order_already_processed_handler,
@@ -19,7 +21,7 @@ from app.exceptions.handlers import (
 )
 from app.exceptions.payment import OrderCannotBePaidError, PaymentNotFoundError
 from app.exceptions.product import ProductNotFoundError
-from app.routers import checkout, product, payment, analytics
+from app.routers import checkout, product, payment, analytics, ai
 
 
 def create_app() -> FastAPI:
@@ -32,6 +34,7 @@ def create_app() -> FastAPI:
     app.include_router(checkout.router)
     app.include_router(payment.router)
     app.include_router(analytics.router)
+    app.include_router(ai.router)
 
     app.add_exception_handler(
         ProductNotFoundError,
@@ -65,6 +68,11 @@ def create_app() -> FastAPI:
         PaymentNotFoundError,
         payment_not_found_handler
     )
+    app.add_exception_handler(
+        AIProviderUnavailableError,
+        ai_provider_unavailable_handler
+    )
+    
 
     return app
 

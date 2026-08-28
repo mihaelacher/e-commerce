@@ -1,6 +1,7 @@
 from fastapi import Request, status
 from fastapi.responses import JSONResponse
 
+from app.exceptions.ai import AIProviderUnavailableError
 from app.exceptions.checkout import (
     EmptyOrderError,
     InsufficientStockError,
@@ -88,5 +89,15 @@ async def payment_not_found_handler(
 ) -> JSONResponse:
     return JSONResponse(
         status_code=status.HTTP_400_BAD_REQUEST,
+        content={"detail": str(exc)},
+    )
+
+
+async def ai_provider_unavailable_handler(
+    _: Request,
+    exc: AIProviderUnavailableError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         content={"detail": str(exc)},
     )

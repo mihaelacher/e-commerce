@@ -1,5 +1,6 @@
 from datetime import UTC, date, datetime
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from app.analytics.sales import daily_sales
 from app.enums.order import OrderStatus
@@ -8,6 +9,8 @@ from app.models.order_item import OrderItemModel
 from app.models.product import ProductModel
 from app.repositories.analytics import AnalyticsRepository
 from app.services.analytics import get_best_selling_products
+
+REPORTING_TIMEZONE = ZoneInfo("Europe/Sofia")
 
 
 def add_sale(
@@ -48,19 +51,19 @@ def test_product_sales_to_date_is_inclusive_and_aggregated(db):
     add_sale(
         db,
         product=product,
-        created_at=datetime(2026, 8, 21, 12, 0, 0, tzinfo=UTC),
+        created_at=datetime(2026, 8, 21, 12, 0, 0, tzinfo=REPORTING_TIMEZONE),
         quantity=2,
     )
     add_sale(
         db,
         product=product,
-        created_at=datetime(2026, 8, 21, 23, 59, 59, tzinfo=UTC),
+        created_at=datetime(2026, 8, 21, 23, 59, 59, tzinfo=REPORTING_TIMEZONE),
         quantity=1,
     )
     add_sale(
         db,
         product=product,
-        created_at=datetime(2026, 8, 22, 0, 0, 0, tzinfo=UTC),
+        created_at=datetime(2026, 8, 22, 0, 0, 0, tzinfo=REPORTING_TIMEZONE),
         quantity=10,
     )
     db.commit()

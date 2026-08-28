@@ -23,6 +23,9 @@ class Settings(BaseSettings):
 
     database_url: str | None = None
 
+    openai_api_key: str
+    gemini_api_key: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",

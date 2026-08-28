@@ -11,6 +11,8 @@ from app.exceptions.payment import (
     PaymentNotFoundError,
 ) 
 
+from app.exceptions.ai import (AIProviderUnavailableError);
+
 __all__ = [
     "ProductNotFoundError",
     "OrderNotFoundError",
@@ -19,5 +21,6 @@ __all__ = [
     "InsufficientStockError",
     "EmptyOrderError",
     "OrderCannotBePaidError",
-    "PaymentNotFoundError"
+    "PaymentNotFoundError",
+    "AIProviderUnavailableError",
 ]

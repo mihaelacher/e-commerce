@@ -22,20 +22,28 @@ A small FastAPI project for an e-commerce backend with product management and ch
 
 ## Run locally
 
-1. Create and activate a virtual environment
-2. Install dependencies
-3. Copy the environment variables needed for your local setup
-4. Start the app:
+Start PostgreSQL and Redis:
 
 ```bash
-uvicorn app.main:app --reload
+docker compose up -d db redis
+```
+
+Install dependencies and start the app:
+
+```bash
+uv sync
+uv run uvicorn app.main:app --reload
 ```
 
 ## Run tests
 
 ```bash
-pytest
+uv run pytest -q
 ```
+
+The test suite uses a separate PostgreSQL database named `ecommerce_test`.
+It is created automatically using the PostgreSQL credentials in
+`.env`. You can override the connection explicitly with `TEST_DATABASE_URL`.
 
 ## Notes
 

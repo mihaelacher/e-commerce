@@ -1,6 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
+from pgvector.sqlalchemy import VECTOR
 from sqlalchemy import CheckConstraint, DateTime, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
@@ -41,4 +42,10 @@ class ProductModel(Base):
         DateTime(timezone=True),
         server_default=func.now(),
         onupdate=func.now(),
+    )
+
+
+    embedding: Mapped[list[float] | None] = mapped_column(
+        VECTOR(768),
+        nullable=True,
     )

@@ -1,6 +1,11 @@
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+
 from fastapi.testclient import TestClient
 
+from app.exceptions.checkout import InsufficientStockError
 from app.models.product import ProductModel
+from app.services.checkout import checkout
 
 
 def create_product(
@@ -449,3 +454,57 @@ def test_cannot_modify_completed_order(client):
 
     assert response.status_code == 400
     assert "processed" in response.json()["detail"].lower()
+
+
+def test_concurrent_checkouts_cannot_oversell_stock(
+    client,
+    testing_session_factory,
+):
+    product = create_product(client, stock=1)
+    first_order = create_order(client, email="first@example.com")
+    second_order = create_order(client, email="second@example.com")
+
+    for order in (first_order, second_order):
+        response = add_product_to_order(
+            client,
+            order["id"],
+            product["id"],
+            1,
+        )
+        assert response.status_code == 201
+
+    start_barrier = Barrier(2)
+
+    def checkout_in_separate_session(order_id: int):
+        db = testing_session_factory()
+
+        try:
+            start_barrier.wait()
+            return checkout(db, order_id)
+        except InsufficientStockError as error:
+            return error
+        finally:
+            db.close()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        results = list(
+            executor.map(
+                checkout_in_separate_session,
+                (first_order["id"], second_order["id"]),
+            )
+        )
+
+    successful_checkouts = [
+        result for result in results if not isinstance(result, Exception)
+    ]
+    stock_errors = [
+        result for result in results if isinstance(result, InsufficientStockError)
+    ]
+
+    assert len(successful_checkouts) == 1
+    assert len(stock_errors) == 1
+
+    response = client.get(f"/products/{product['id']}")
+
+    assert response.status_code == 200
+    assert response.json()["stock"] == 0
