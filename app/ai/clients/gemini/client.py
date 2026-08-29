@@ -15,45 +15,59 @@ class GeminiClient(LLMClient):
 
     def chat(
         self,
-        message: str
+        message: str,
+        tools: list[dict] | None = None,
     ) -> LLMResponse:
         def request():
-            tool_definitions = [
-                tool.definition
-                for tool in self.tools.values()
-            ]
+            gemini_tools = None
 
-            response = self.ai_client.chat(
-                message,
-                tools=tool_definitions,
+            if tools:
+                gemini_tools = [
+                    types.Tool(
+                        function_declarations=[
+                            types.FunctionDeclaration(
+                                name=tool["name"],
+                                description=tool["description"],
+                                parameters=tool["parameters"],
+                            )
+                            for tool in tools
+                        ]
+                    )
+                ]
+
+            response = self.client.models.generate_content(
+                model="gemini-3.6-flash",
+                contents=message,
+                config=types.GenerateContentConfig(
+                    system_instruction=(
+                        "You are an assistant for an e-commerce application. "
+                        "Use tool results when needed. "
+                        "Do not invent products, prices, stock, "
+                        "order information, or features."
+                    ),
+                    tools=gemini_tools,
+                ),
             )
 
-            max_steps = 5
+            state = [response.candidates[0].content]
 
-            for _ in range(max_steps):
-                if not response.tool_call:
-                    return response.content or ""
+            if response.function_calls:
+                function_call = response.function_calls[0]
 
-                tool = self.tools.get(response.tool_call.name)
-
-                if not tool:
-                    raise ValueError(
-                        f"Unknown tool: {response.tool_call.name}"
-                    )
-
-                tool_result = tool.execute(
-                    **response.tool_call.arguments
+                return LLMResponse(
+                    tool_call=ToolCall(
+                        name=function_call.name,
+                        arguments=dict(function_call.args),
+                    ),
+                    state=state,
                 )
 
-                response = self.ai_client.chat_with_tool_result(
-                    previous_response=response,
-                    tool_result=tool_result,
-                    tools=tool_definitions,
-                )
+            return LLMResponse(
+                content=response.text,
+                state=state,
+            )
 
-                raise RuntimeError(
-                    "Maximum number of agent steps exceeded."
-                )
+        return with_retry(request)
 
 
     def chat_with_tool_result(
