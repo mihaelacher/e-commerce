@@ -1,13 +1,7 @@
 from app.core.database import SessionLocal
-from app.core.dependencies import get_embedding_client
+from app.core.dependencies.ai import get_embedding_client
 from app.repositories.product import ProductRepository
-
-
-def build_product_text(product) -> str:
-    return (
-        f"Product: {product.name}\n"
-        f"Description: {product.description or ''}"
-    )
+from app.services.embeddings import build_product_text
 
 
 def generate_product_embeddings() -> None:

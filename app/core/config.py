@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://redis:6379/0"
     celery_broker_url: str | None = None
     celery_result_backend: str | None = None
+    ai_rate_limit_requests: int = 20
+    ai_rate_limit_window_seconds: int = 60
 
     smtp_host: str = "localhost"
     smtp_port: int = 587
@@ -23,7 +25,6 @@ class Settings(BaseSettings):
 
     database_url: str | None = None
 
-    openai_api_key: str
     gemini_api_key: str
 
     model_config = SettingsConfigDict(

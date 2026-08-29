@@ -2,7 +2,7 @@ from google import genai
 from google.genai import types
 
 from app.ai.clients.embedding_base import EmbeddingClient
-from app.ai.gemini_helper import with_retry
+from app.ai.clients.gemini.helper import with_retry
 from app.core.config import settings
 
 

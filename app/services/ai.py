@@ -1,74 +1,55 @@
-from turtle import distance
-
 from app.ai.clients.llm_base import LLMClient
-from app.ai.clients.embedding_base import EmbeddingClient
-from app.ai.clients.product_query_parser import ProductQueryParser
-from app.repositories.product import ProductRepository
 
 
 class AIService:
+    MAX_AGENT_STEPS = 5
+
     def __init__(
         self,
         ai_client: LLMClient,
-        embedding_client: EmbeddingClient,
-        product_repository: ProductRepository,
-        query_parser: ProductQueryParser,
-    ) -> None:
+        tools: list,
+    ):
         self.ai_client = ai_client
-        self.embedding_client = embedding_client
-        self.product_repository = product_repository
-        self.query_parser = query_parser
+        self.tools = {
+            tool.name: tool
+            for tool in tools
+        }
 
     def chat(self, message: str) -> str:
-        query = self.query_parser.parse(message)
-
-        query_embedding = self.embedding_client.embed(
-            query.search_query
-        )
-
-        results = self.product_repository.semantic_search(
-            query_embedding=query_embedding,
-            min_price=query.min_price,
-            max_price=query.max_price,
-            limit=5,
-        )
-
-        relevant_results = [
-            (product, distance)
-            for product, distance in results
-            if distance < 0.5
+        tool_definitions = [
+            tool.definition
+            for tool in self.tools.values()
         ]
 
-        if not relevant_results:
-            return (
-                "I couldn't find sufficiently relevant products "
-                "matching your requirements."
-            )
-
-        context = "\n\n".join(
-            (
-                f"Product: {product.name}\n"
-                f"Price: {product.price} EUR\n"
-                f"Stock: {product.stock}\n"
-                f"Description: {product.description or ''}"
-            )
-            for product, distance in relevant_results
+        response = self.ai_client.chat(
+            message,
+            tools=tool_definitions,
         )
 
-        prompt = f"""
-            Customer question:
-            {message}
+        for _ in range(self.MAX_AGENT_STEPS):
+            if not response.tool_call:
+                return response.content or ""
 
-            Products matching the customer's requirements:
-            {context}
+            tool = self.tools.get(
+                response.tool_call.name
+            )
 
-            Answer using only the products above.
+            if not tool:
+                raise ValueError(
+                    f"Unknown tool: "
+                    f"{response.tool_call.name}"
+                )
 
-            Rules:
-            - Do not invent products.
-            - Do not invent prices, features, or stock levels.
-            - Respect the customer's price requirements.
-            - If the available information is insufficient, say so.
-            """
+            tool_result = tool.execute(
+                **response.tool_call.arguments
+            )
 
-        return self.ai_client.chat(prompt)
+            response = self.ai_client.chat_with_tool_result(
+                previous_response=response,
+                tool_result=tool_result,
+                tools=tool_definitions,
+            )
+
+        raise RuntimeError(
+            "Maximum number of agent steps exceeded."
+        )

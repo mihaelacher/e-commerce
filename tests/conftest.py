@@ -39,6 +39,15 @@ def ensure_test_database() -> None:
     finally:
         maintenance_engine.dispose()
 
+    test_engine = create_engine(TEST_DATABASE_URL, isolation_level="AUTOCOMMIT")
+    try:
+        with test_engine.connect() as connection:
+            connection.exec_driver_sql(
+                "CREATE EXTENSION IF NOT EXISTS vector"
+            )
+    finally:
+        test_engine.dispose()
+
 
 ensure_test_database()
 

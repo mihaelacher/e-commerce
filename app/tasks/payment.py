@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from app.core.database import SessionLocal
-from app.core.dependencies import get_payment_provider
+from app.core.dependencies.payment import get_payment_provider
 from app.enums.payment_status import PaymentStatus
 from app.repositories.payment import PaymentRepository
 from app.tasks.celery import celery_app

@@ -5,6 +5,7 @@ from app.exceptions import ProductNotFoundError
 from app.models.product import ProductModel
 from app.repositories.product import ProductRepository
 from app.schemas.product import ProductCreate, ProductUpdate
+from app.tasks.embeddings import generate_product_embedding_task
 
 
 def get_product(
@@ -38,7 +39,10 @@ def create_product(
     repository = ProductRepository(db)
 
     with transaction(db):
-        return repository.create(product.model_dump())
+        db_product = repository.create(product.model_dump())
+
+    generate_product_embedding_task.delay(db_product.id)
+    return db_product
 
 
 def update_product(
@@ -54,10 +58,22 @@ def update_product(
         if db_product is None:
             raise ProductNotFoundError(product_id)
 
-        return repository.update(
+        updated_product = repository.update(
             db_product,
             product.model_dump(exclude_unset=True),
         )
+
+        searchable_fields_changed = any(
+            field in product.model_fields_set
+            for field in ("name", "description")
+        )
+        if searchable_fields_changed:
+            updated_product.embedding = None
+
+    if searchable_fields_changed:
+        generate_product_embedding_task.delay(updated_product.id)
+
+    return updated_product
 
 
 def delete_product(

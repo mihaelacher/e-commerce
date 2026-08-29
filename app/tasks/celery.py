@@ -6,7 +6,11 @@ celery_app = Celery(
     "ecommerce",
     broker=settings.celery_broker,
     backend=settings.celery_backend,
-    include=["app.tasks.email", "app.tasks.payment"],
+    include=[
+        "app.tasks.email",
+        "app.tasks.embeddings",
+        "app.tasks.payment",
+    ],
 )
 
 celery_app.conf.update(

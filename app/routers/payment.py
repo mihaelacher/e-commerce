@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.core.dependencies import get_payment_provider
+from app.core.dependencies.payment import get_payment_provider
 from app.providers.payment.base import PaymentGateway
 from app.schemas.payment import PaymentResponse
 from app.services.payment import create_payment, handle_payment_webhook
