@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Any
 
 from app.ai.models import LLMResponse
 
@@ -9,14 +10,29 @@ class LLMClient(ABC):
         self,
         message: str,
         tools: list[dict] | None = None,
+        state: Any | None = None,
     ) -> LLMResponse:
-        pass
+        ...
 
     @abstractmethod
     def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
-        tool_result: list[dict],
+        tool_result: Any,
         tools: list[dict] | None = None,
     ) -> LLMResponse:
-        pass
+        ...
+
+    @abstractmethod
+    def serialize_state(
+        self,
+        state: Any,
+    ) -> Any:
+        ...
+
+    @abstractmethod
+    def deserialize_state(
+        self,
+        state: Any,
+    ) -> Any:
+        ...

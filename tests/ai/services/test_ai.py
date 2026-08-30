@@ -2,6 +2,24 @@ from app.ai.models import LLMResponse, ToolCall
 from app.services.ai import AIService
 
 
+class FakeConversationStore:
+    def __init__(self, stored_state=None):
+        self.stored_state = stored_state
+        self.saved_conversation_id = None
+        self.saved_state = None
+
+    def get(self, conversation_id: str):
+        return self.stored_state
+
+    def save(
+        self,
+        conversation_id: str,
+        state,
+    ) -> None:
+        self.saved_conversation_id = conversation_id
+        self.saved_state = state
+
+
 class FakeSearchProductsTool:
     name = "search_products"
 
@@ -74,12 +92,16 @@ class FakeGetOrderStatusTool:
 class SingleToolAIClient:
     def __init__(self):
         self.tool_result = None
+        self.received_state = None
 
     def chat(
         self,
         message: str,
         tools=None,
+        state=None,
     ) -> LLMResponse:
+        self.received_state = state
+
         return LLMResponse(
             tool_call=ToolCall(
                 name="search_products",
@@ -88,7 +110,7 @@ class SingleToolAIClient:
                     "max_price": 150,
                 },
             ),
-            state=[],
+            state=["tool-call-state"],
         )
 
     def chat_with_tool_result(
@@ -101,8 +123,14 @@ class SingleToolAIClient:
 
         return LLMResponse(
             content="I recommend the Quiet Headphones.",
-            state=[],
+            state=["final-state"],
         )
+
+    def serialize_state(self, state):
+        return state
+
+    def deserialize_state(self, state):
+        return state
 
 
 class EmptyResultAIClient(SingleToolAIClient):
@@ -116,7 +144,7 @@ class EmptyResultAIClient(SingleToolAIClient):
 
         return LLMResponse(
             content="I couldn't find any matching products.",
-            state=[],
+            state=["final-state"],
         )
 
 
@@ -128,6 +156,7 @@ class MultiToolAIClient:
         self,
         message: str,
         tools=None,
+        state=None,
     ) -> LLMResponse:
         return LLMResponse(
             tool_call=ToolCall(
@@ -137,7 +166,7 @@ class MultiToolAIClient:
                     "max_price": 100,
                 },
             ),
-            state=[],
+            state=["search-state"],
         )
 
     def chat_with_tool_result(
@@ -156,7 +185,7 @@ class MultiToolAIClient:
                         "order_id": 42,
                     },
                 ),
-                state=[],
+                state=["order-state"],
             )
 
         return LLMResponse(
@@ -164,50 +193,19 @@ class MultiToolAIClient:
                 "I found matching headphones and "
                 "order 42 is processing."
             ),
-            state=[],
+            state=["final-state"],
         )
 
+    def serialize_state(self, state):
+        return state
 
-def test_ai_service_executes_search_tool():
-    tool_result = [
-        {
-            "name": "Quiet Headphones",
-            "price": "99.99",
-            "stock": 3,
-            "description": "Noise cancelling",
-        }
-    ]
-
-    ai_client = SingleToolAIClient()
-
-    search_tool = FakeSearchProductsTool(
-        result=tool_result,
-    )
-
-    service = AIService(
-        ai_client=ai_client,
-        tools=[search_tool],
-    )
-
-    answer = service.chat(
-        "I need wireless headphones under 150 EUR"
-    )
-
-    assert search_tool.was_called
-
-    assert search_tool.arguments == {
-        "query": "wireless headphones",
-        "min_price": None,
-        "max_price": 150,
-    }
-
-    assert ai_client.tool_result == tool_result
-
-    assert answer == "I recommend the Quiet Headphones."
+    def deserialize_state(self, state):
+        return state
 
 
 def test_ai_service_passes_empty_tool_result_to_llm():
     ai_client = EmptyResultAIClient()
+    conversation_store = FakeConversationStore()
 
     search_tool = FakeSearchProductsTool(
         result=[],
@@ -215,13 +213,21 @@ def test_ai_service_passes_empty_tool_result_to_llm():
 
     service = AIService(
         ai_client=ai_client,
+        conversation_store=conversation_store,
         tools=[search_tool],
     )
 
-    answer = service.chat("Find headphones")
+    answer = service.chat(
+        message="Find headphones",
+        conversation_id="conversation-1",
+    )
 
     assert search_tool.was_called
     assert ai_client.tool_result == []
+
+    assert conversation_store.saved_state == [
+        "final-state"
+    ]
 
     assert answer == (
         "I couldn't find any matching products."
@@ -230,12 +236,14 @@ def test_ai_service_passes_empty_tool_result_to_llm():
 
 def test_ai_service_executes_multiple_tools():
     ai_client = MultiToolAIClient()
+    conversation_store = FakeConversationStore()
 
     search_tool = FakeSearchProductsTool()
     order_tool = FakeGetOrderStatusTool()
 
     service = AIService(
         ai_client=ai_client,
+        conversation_store=conversation_store,
         tools=[
             search_tool,
             order_tool,
@@ -243,8 +251,11 @@ def test_ai_service_executes_multiple_tools():
     )
 
     answer = service.chat(
-        "Find headphones under 100 EUR "
-        "and tell me the status of order 42"
+        message=(
+            "Find headphones under 100 EUR "
+            "and tell me the status of order 42"
+        ),
+        conversation_id="conversation-1",
     )
 
     assert search_tool.was_called
@@ -258,7 +269,38 @@ def test_ai_service_executes_multiple_tools():
     assert order_tool.was_called
     assert order_tool.order_id == 42
 
+    assert conversation_store.saved_state == [
+        "final-state"
+    ]
+
     assert answer == (
         "I found matching headphones and "
         "order 42 is processing."
     )
+
+
+def test_ai_service_loads_existing_conversation_state():
+    stored_state = [
+        "previous-conversation-state"
+    ]
+
+    ai_client = SingleToolAIClient()
+
+    conversation_store = FakeConversationStore(
+        stored_state=stored_state,
+    )
+
+    search_tool = FakeSearchProductsTool()
+
+    service = AIService(
+        ai_client=ai_client,
+        conversation_store=conversation_store,
+        tools=[search_tool],
+    )
+
+    service.chat(
+        message="42",
+        conversation_id="conversation-1",
+    )
+
+    assert ai_client.received_state == stored_state            

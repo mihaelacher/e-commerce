@@ -1,13 +1,17 @@
 from fastapi import Depends
+from redis import Redis
 from sqlalchemy.orm import Session
 
 from app.ai.clients.embedding_base import EmbeddingClient
 from app.ai.clients.gemini.client import GeminiClient
 from app.ai.clients.gemini.embedding import GeminiEmbeddingClient
 from app.ai.clients.llm_base import LLMClient
+from app.ai.conversation.redis_store import RedisConversationStore
+from app.ai.conversation.store import ConversationStore
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_products import SearchProductsTool
 from app.core.database import get_db
+from app.core.dependencies.core import get_redis
 from app.repositories.order import OrderRepository
 from app.repositories.product import ProductRepository
 from app.services.ai import AIService
@@ -39,8 +43,20 @@ def get_order_status_tool(
     )
 
 
+def get_conversation_store(
+    redis: Redis = Depends(get_redis),
+) -> ConversationStore:
+    return RedisConversationStore(
+        redis=redis,
+        ttl_seconds=3600,
+    )
+
+
 def get_ai_service(
     ai_client: LLMClient = Depends(get_ai_client),
+    conversation_store: ConversationStore = Depends(
+        get_conversation_store
+    ),
     search_products_tool: SearchProductsTool = Depends(
         get_search_products_tool
     ),
@@ -50,6 +66,7 @@ def get_ai_service(
 ) -> AIService:
     return AIService(
         ai_client=ai_client,
+        conversation_store=conversation_store,
         tools=[
             search_products_tool,
             order_status_tool,

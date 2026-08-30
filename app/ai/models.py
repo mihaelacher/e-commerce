@@ -13,3 +13,4 @@ class LLMResponse:
     content: str | None = None
     tool_call: ToolCall | None = None
     state: object | None = None
+    conversation_ref: str | None = None

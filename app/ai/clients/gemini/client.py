@@ -1,8 +1,10 @@
+from typing import Any
+
 from google import genai
 from google.genai import types
 
-from app.ai.clients.llm_base import LLMClient
 from app.ai.clients.gemini.helper import with_retry
+from app.ai.clients.llm_base import LLMClient
 from app.ai.models import LLMResponse, ToolCall
 from app.core.config import settings
 
@@ -17,90 +19,57 @@ class GeminiClient(LLMClient):
         self,
         message: str,
         tools: list[dict] | None = None,
+        state: Any | None = None,
     ) -> LLMResponse:
         def request():
-            gemini_tools = None
+            user_content = types.Content(
+                role="user",
+                parts=[
+                    types.Part.from_text(text=message),
+                ],
+            )
 
-            if tools:
-                gemini_tools = [
-                    types.Tool(
-                        function_declarations=[
-                            types.FunctionDeclaration(
-                                name=tool["name"],
-                                description=tool["description"],
-                                parameters=tool["parameters"],
-                            )
-                            for tool in tools
-                        ]
-                    )
-                ]
+            contents = [
+                *(state or []),
+                user_content,
+            ]
 
             response = self.client.models.generate_content(
                 model="gemini-3.6-flash",
-                contents=message,
+                contents=contents,
                 config=types.GenerateContentConfig(
                     system_instruction=(
                         "You are an assistant for an e-commerce application. "
-                        "Use tool results when needed. "
-                        "Do not invent products, prices, stock, "
-                        "order information, or features."
+                        "Answer clearly and concisely."
                     ),
-                    tools=gemini_tools,
+                    tools=self._build_tools(tools),
                 ),
             )
 
-            state = [response.candidates[0].content]
+            new_state = [
+                *contents,
+                response.candidates[0].content,
+            ]
 
-            if response.function_calls:
-                function_call = response.function_calls[0]
-
-                return LLMResponse(
-                    tool_call=ToolCall(
-                        name=function_call.name,
-                        arguments=dict(function_call.args),
-                    ),
-                    state=state,
-                )
-
-            return LLMResponse(
-                content=response.text,
-                state=state,
+            return self._to_response(
+                response=response,
+                state=new_state,
             )
 
         return with_retry(request)
 
-
     def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
-        tool_result: list[dict],
+        tool_result: Any,
         tools: list[dict] | None = None,
     ) -> LLMResponse:
         def request():
-            gemini_tools = None
-
-            if tools:
-                gemini_tools = [
-                    types.Tool(
-                        function_declarations=[
-                            types.FunctionDeclaration(
-                                name=tool["name"],
-                                description=tool["description"],
-                                parameters=tool["parameters"],
-                            )
-                            for tool in tools
-                        ]
-                    )
-                ]
-
-
-            tool_call = previous_response.tool_call
-
             function_response = types.Content(
                 role="user",
                 parts=[
                     types.Part.from_function_response(
-                        name=tool_call.name,
+                        name=previous_response.tool_call.name,
                         response={
                             "result": tool_result,
                         },
@@ -123,29 +92,80 @@ class GeminiClient(LLMClient):
                         "Do not invent products, prices, stock, "
                         "order information, or features."
                     ),
-                    tools=gemini_tools,
+                    tools=self._build_tools(tools),
                 ),
             )
 
-            state = [
+            new_state = [
                 *contents,
                 response.candidates[0].content,
-            ]   
+            ]
 
-            if response.function_calls:
-                function_call = response.function_calls[0]
-
-                return LLMResponse(
-                    tool_call=ToolCall(
-                        name=function_call.name,
-                        arguments=dict(function_call.args),
-                    ),
-                    state=state,
-                )
-
-            return LLMResponse(
-                content=response.text,
-                state=state,
+            return self._to_response(
+                response=response,
+                state=new_state,
             )
 
         return with_retry(request)
+
+    def serialize_state(
+        self,
+        state: Any,
+    ) -> list[dict]:
+        return [
+            content.model_dump(
+                mode="json",
+                exclude_none=True,
+            )
+            for content in state
+        ]
+
+    def deserialize_state(
+        self,
+        state: list[dict],
+    ) -> list[types.Content]:
+        return [
+            types.Content.model_validate(content)
+            for content in state
+        ]
+
+    def _build_tools(
+        self,
+        tools: list[dict] | None,
+    ) -> list[types.Tool] | None:
+        if not tools:
+            return None
+
+        return [
+            types.Tool(
+                function_declarations=[
+                    types.FunctionDeclaration(
+                        name=tool["name"],
+                        description=tool["description"],
+                        parameters=tool["parameters"],
+                    )
+                    for tool in tools
+                ]
+            )
+        ]
+
+    def _to_response(
+        self,
+        response,
+        state: list[types.Content],
+    ) -> LLMResponse:
+        if response.function_calls:
+            function_call = response.function_calls[0]
+
+            return LLMResponse(
+                tool_call=ToolCall(
+                    name=function_call.name,
+                    arguments=dict(function_call.args),
+                ),
+                state=state,
+            )
+
+        return LLMResponse(
+            content=response.text,
+            state=state,
+        )
