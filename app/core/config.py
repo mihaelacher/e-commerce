@@ -5,12 +5,20 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     project_name: str = "E-Commerce API"
     api_v1_str: str = "/api/v1"
-    redis_url: str = "redis://redis:6379/0"
+
+    environment: str = "development"
+    log_level: str = "INFO"
+
+    database_url: str | None = None
+    postgres_host: str = "localhost"
+    postgres_port: int = 5432
+    postgres_user: str = "postgres"
+    postgres_password: str = "postgres"
+    postgres_db: str = "ecommerce"
+
+    redis_url: str = "redis://localhost:6379/0"
     celery_broker_url: str | None = None
     celery_result_backend: str | None = None
-    ai_rate_limit_requests: int = 20
-    ai_rate_limit_window_seconds: int = 60
-
     smtp_host: str = "localhost"
     smtp_port: int = 587
     smtp_username: str = ""
@@ -18,21 +26,25 @@ class Settings(BaseSettings):
     smtp_from_email: str = "noreply@example.com"
     smtp_from_name: str = "E-Commerce API"
 
-    n8n_base_url: str = "http://n8n:5678"
-
-    postgres_server: str = "db"
-    postgres_user: str = "postgres"
-    postgres_password: str = "postgres"
-    postgres_db: str = "ecommerce"
-
-    database_url: str | None = None
+    n8n_base_url: str = "http://localhost:5678"
 
     gemini_api_key: str
+    sentry_dsn: str | None = None
+
+    ai_rate_limit_requests: int = 20
+    ai_rate_limit_window_seconds: int = 60
 
     model_config = SettingsConfigDict(
         env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
         extra="ignore",
     )
+
+    @computed_field
+    @property
+    def postgres_server(self) -> str:
+        return self.postgres_host
 
     @computed_field
     @property
@@ -42,7 +54,7 @@ class Settings(BaseSettings):
 
         return (
             f"postgresql://{self.postgres_user}:{self.postgres_password}"
-            f"@{self.postgres_server}/{self.postgres_db}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
         )
 
     @computed_field

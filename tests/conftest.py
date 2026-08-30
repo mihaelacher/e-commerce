@@ -10,10 +10,13 @@ from app.core.config import settings
 from app.core.database import Base, get_db
 from app.main import app
 
+DEFAULT_TEST_HOST = os.getenv("POSTGRES_HOST", "localhost")
 TEST_DATABASE_URL = os.getenv(
     "TEST_DATABASE_URL",
-    f"postgresql://{settings.postgres_user}:{settings.postgres_password}"
-    f"@{settings.postgres_server}/ecommerce_test",
+    (
+        f"postgresql://{settings.postgres_user}:{settings.postgres_password}"
+        f"@{DEFAULT_TEST_HOST}:{settings.postgres_port}/ecommerce_test"
+    ),
 )
 
 

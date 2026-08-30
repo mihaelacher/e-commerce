@@ -2,9 +2,12 @@ from datetime import timedelta
 
 from app.core.database import SessionLocal
 from app.core.dependencies.payment import get_payment_provider
+from app.core.logging import capture_exception, get_logger
 from app.enums.payment_status import PaymentStatus
 from app.repositories.payment import PaymentRepository
 from app.tasks.celery import celery_app
+
+logger = get_logger(__name__)
 
 
 @celery_app.task(
@@ -18,6 +21,8 @@ def process_payment(payment_id: int) -> None:
     db = SessionLocal()
     payment_repository = PaymentRepository(db)
 
+    logger.info("payment_task_started", extra={"payment_id": payment_id})
+
     try:
         claimed = payment_repository.claim_for_processing(
             payment_id,
@@ -25,11 +30,13 @@ def process_payment(payment_id: int) -> None:
         )
 
         if not claimed:
+            logger.info("payment_task_already_claimed", extra={"payment_id": payment_id})
             return
 
         payment = payment_repository.get_by_id(payment_id)
 
         if payment is None:
+            logger.warning("payment_task_missing_payment", extra={"payment_id": payment_id})
             return
 
         provider = get_payment_provider()
@@ -41,8 +48,9 @@ def process_payment(payment_id: int) -> None:
 
         payment.transaction_id = result.transaction_id
         db.commit()
+        logger.info("payment_task_completed", extra={"payment_id": payment_id, "transaction_id": result.transaction_id})
 
-    except Exception:
+    except Exception as exc:
         db.rollback()
 
         payment = payment_repository.get_by_id(payment_id)
@@ -50,6 +58,8 @@ def process_payment(payment_id: int) -> None:
             payment.processing_started_at = None
             db.commit()
 
+        logger.exception("payment_task_failed", extra={"payment_id": payment_id})
+        capture_exception(exc, payment_id=payment_id)
         raise
 
     finally:

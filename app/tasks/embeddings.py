@@ -1,8 +1,11 @@
 from app.core.database import SessionLocal
 from app.core.dependencies.ai import get_embedding_client
+from app.core.logging import capture_exception, get_logger
 from app.repositories.product import ProductRepository
 from app.services.embeddings import build_product_text
 from app.tasks.celery import celery_app
+
+logger = get_logger(__name__)
 
 
 @celery_app.task(
@@ -15,18 +18,24 @@ from app.tasks.celery import celery_app
 def generate_product_embedding_task(product_id: int) -> None:
     db = SessionLocal()
 
+    logger.info("embedding_task_started", extra={"product_id": product_id})
+
     try:
         product = ProductRepository(db).get(product_id)
 
         if product is None:
+            logger.warning("embedding_task_product_missing", extra={"product_id": product_id})
             return
 
         product.embedding = get_embedding_client().embed(
             build_product_text(product)
         )
         db.commit()
-    except Exception:
+        logger.info("embedding_task_completed", extra={"product_id": product_id})
+    except Exception as exc:
         db.rollback()
+        logger.exception("embedding_task_failed", extra={"product_id": product_id})
+        capture_exception(exc, product_id=product_id)
         raise
     finally:
         db.close()
