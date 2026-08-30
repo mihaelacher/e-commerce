@@ -18,7 +18,9 @@ class Settings(BaseSettings):
     smtp_from_email: str = "noreply@example.com"
     smtp_from_name: str = "E-Commerce API"
 
-    postgres_server: str = "localhost"
+    n8n_base_url: str = "http://n8n:5678"
+
+    postgres_server: str = "db"
     postgres_user: str = "postgres"
     postgres_password: str = "postgres"
     postgres_db: str = "ecommerce"

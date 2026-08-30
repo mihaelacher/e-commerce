@@ -7,7 +7,7 @@ celery_app = Celery(
     broker=settings.celery_broker,
     backend=settings.celery_backend,
     include=[
-        "app.tasks.email",
+        "app.tasks.order_confirmation",
         "app.tasks.embeddings",
         "app.tasks.payment",
     ],

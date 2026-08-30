@@ -11,7 +11,7 @@ from app.providers.payment.base import PaymentGateway
 from app.repositories.order import OrderRepository
 from app.repositories.payment import PaymentRepository
 from app.repositories.product import ProductRepository
-from app.tasks.email import send_order_confirmation_task
+from app.tasks.order_confirmation import notify_order_created_task, send_order_confirmation_task
 from app.tasks.payment import process_payment
 
 
@@ -108,6 +108,11 @@ def handle_payment_webhook(
     if result.success:
         send_order_confirmation_task.delay(
             recipient=order.email,
+            order_id=order.id,
+            total=str(order.total),
+        )
+
+        notify_order_created_task.delay(
             order_id=order.id,
             total=str(order.total),
         )

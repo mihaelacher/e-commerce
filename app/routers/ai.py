@@ -9,6 +9,7 @@ from app.services.ai import AIService
 
 router = APIRouter(
     prefix="/ai",
+    tags=["Chat"],
 )
 
 

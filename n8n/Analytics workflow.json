@@ -1,0 +1,124 @@
+{
+  "name": "Analytics workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [0, 0],
+      "id": "0e91e7f6-415d-48ed-8227-64f4845c7ac0",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://api:8000/analytics/sales/daily",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [224, 0],
+      "id": "839bb84c-467a-4d0d-855b-07e8a0a01cf8",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/ai/chat",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "=Create a concise business summary of today's sales analytics. Highlight the most important results and any notable patterns. Analytics data: {{$json}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [448, 0],
+      "id": "43d9dad7-9c56-4f44-bc76-b3f1c538cebc",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "fromEmail": "example@gmail.com",
+        "toEmail": "example@gmail.com",
+        "subject": "Daily Sales AI Summary",
+        "emailFormat": "both",
+        "text": "=Daily Sales Report\n\n{{$json.answer}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [672, 0],
+      "id": "d2509d0f-d0db-4d2f-939d-5aceec7ee451",
+      "name": "Send an Email",
+      "webhookId": "b571d7be-05a4-4111-ba35-d5e7e450b475",
+      "credentials": {
+        "smtp": {
+          "id": "HjKxRrzmr02l5dvy",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d486b49f-37ab-4078-938d-5dfb07790b13",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3d6d9db7527b4a3a10ab9ce8a2b863a78cd0d9bbc08d258337a280bfb496c6c0"
+  },
+  "nodeGroups": [],
+  "id": "9zCb9An8sCNi3NgS",
+  "tags": []
+}

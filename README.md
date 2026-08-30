@@ -1,6 +1,6 @@
 # E-commerce API
 
-A small FastAPI project for an e-commerce backend with product management and checkout flow.
+A FastAPI learning project for an e-commerce backend with product management, checkout flow, analytics, AI features, and workflow automation.
 
 ## Features
 
@@ -8,43 +8,33 @@ A small FastAPI project for an e-commerce backend with product management and ch
 - Create orders and manage order items
 - Validate stock before checkout
 - Prevent double checkout and invalid order mutations
-- Calculate totals, tax, and shipping values
-- Send order confirmation asynchronously through Celery
+- Calculate totals, tax, discounts, and shipping
+- Send order confirmations asynchronously through Celery
+- Sales analytics and reporting
+- Semantic product search with pgvector
+- AI integration with Gemini
+- RAG and AI tool calling
+- Multi-turn AI conversations with Redis
+- n8n workflow automation
+- High-value order email notifications
+- AI-generated daily sales summaries
+- Dockerized application and services
 
-## Tech stack
+## Tech Stack
 
 - FastAPI
 - SQLAlchemy
-- PostgreSQL
+- PostgreSQL + pgvector
 - Celery + Redis
+- Pandas
 - Pydantic
+- Gemini
+- n8n
+- Docker
 - Pytest
 
-## Run locally
-
-Start PostgreSQL and Redis:
+## Run
 
 ```bash
-docker compose up -d db redis
+docker compose up -d --build
 ```
-
-Install dependencies and start the app:
-
-```bash
-uv sync
-uv run uvicorn app.main:app --reload
-```
-
-## Run tests
-
-```bash
-uv run pytest -q
-```
-
-The test suite uses a separate PostgreSQL database named `ecommerce_test`.
-It is created automatically using the PostgreSQL credentials in
-`.env`. You can override the connection explicitly with `TEST_DATABASE_URL`.
-
-## Notes
-
-This is a learning project focused on backend architecture, business rules, and clean API design.
