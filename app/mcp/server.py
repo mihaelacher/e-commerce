@@ -2,7 +2,7 @@ from mcp.server import MCPServer
 
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_products import SearchProductsTool
-from app.core.database import get_db
+from app.core.database import SessionLocal
 from app.core.dependencies.ai import get_embedding_client
 from app.repositories.order import OrderRepository
 from app.repositories.product import ProductRepository
@@ -25,10 +25,7 @@ def search_products(
     min_price: float | None = None,
     max_price: float | None = None,
 ) -> list[dict]:
-    db_generator = get_db()
-    db = next(db_generator)
-
-    try:
+    with SessionLocal() as db:
         tool = SearchProductsTool(
             embedding_client=embedding_client,
             product_repository=ProductRepository(db=db),
@@ -39,23 +36,16 @@ def search_products(
             min_price=min_price,
             max_price=max_price,
         )
-    finally:
-        db_generator.close()
 
 
 @mcp.tool()
 def get_order_status(order_id: int) -> dict:
-    db_generator = get_db()
-    db = next(db_generator)
-
-    try:
+    with SessionLocal() as db:
         tool = GetOrderStatusTool(
             order_repository=OrderRepository(db=db),
         )
 
         return tool.execute(order_id=order_id)
-    finally:
-        db_generator.close()
 
 
 if __name__ == "__main__":
