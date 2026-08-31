@@ -140,7 +140,12 @@ def test_process_payment(
     assert payment.status == PaymentStatus.PENDING
 
 
-def test_process_payment_payment_not_found():
+def test_process_payment_payment_not_found(monkeypatch, db):
+    monkeypatch.setattr(
+        "app.tasks.payment.SessionLocal",
+        lambda: db,
+    )
+     
     process_payment(999999)   
 
 
@@ -172,7 +177,12 @@ def test_process_payment_skips_non_pending_payment(
         fail_if_called,
     )
 
-    process_payment(payment.id)    
+    monkeypatch.setattr(
+        "app.tasks.payment.SessionLocal",
+        lambda: db,
+    )
+
+    process_payment(payment.id)  
 
 
 def test_process_payment_failure(
