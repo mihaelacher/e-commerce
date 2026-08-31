@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 import json
 from unittest.mock import MagicMock, patch
 
@@ -48,29 +49,49 @@ async def test_ping() -> None:
 
 @pytest.mark.anyio
 async def test_search_products() -> None:
-    async with Client(mcp) as client:
-        result = await client.call_tool(
-            "search_products",
-            {
-                "query": "laptop",
-            },
-        )
+    mocked_product = MagicMock()
+    mocked_product.name = "Laptop Stand"
+    mocked_product.price = Decimal("49.99")
+    mocked_product.stock = 5
+    mocked_product.description = "Adjustable stand"
+    
+    mocked_products = [
+        (mocked_product, 0.2),
+    ]
 
-        assert result.is_error is False
-        assert result.structured_content is not None
+    with (
+        patch(
+            "app.mcp.server.embedding_client.embed",
+            return_value=[0.1, 0.2, 0.3],
+        ),
+        patch(
+            "app.mcp.server.ProductRepository.semantic_search",
+            return_value=mocked_products,
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "search_products",
+                {"query": "laptop"},
+            )
 
-        products = result.structured_content["result"]
+    assert result.is_error is False
+    assert result.structured_content is not None
 
-        assert isinstance(products, list)
+    products = [
+        json.loads(item.text)
+        for item in result.content
+    ]
 
-        if products:
-            product = products[0]
+    assert len(products) == 1
 
-            assert "name" in product
-            assert "price" in product
-            assert "stock" in product
-            assert "description" in product
-            
+    product = products[0]
+
+    assert product["name"] == "Laptop Stand"
+    assert product["price"] == "49.99"
+    assert product["stock"] == 5
+    assert product["description"] == "Adjustable stand"
+
 
 @pytest.mark.anyio
 async def test_get_order_status() -> None:

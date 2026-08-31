@@ -10,7 +10,21 @@ from app.repositories.product import ProductRepository
 
 mcp = MCPServer("ecommerce")
 
-embedding_client = get_embedding_client()
+
+class LazyEmbeddingClient:
+    def __init__(self) -> None:
+        self._client = None
+
+    def _get_client(self):
+        if self._client is None:
+            self._client = get_embedding_client()
+        return self._client
+
+    def embed(self, text: str) -> list[float]:
+        return self._get_client().embed(text)
+
+
+embedding_client = LazyEmbeddingClient()
 
 
 @mcp.tool()
