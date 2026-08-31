@@ -1,10 +1,12 @@
+from typing import ClassVar
+
 from app.repositories.order import OrderRepository
 
 
 class GetOrderStatusTool:
-    name = "get_order_status"
+    name: ClassVar[str] = "get_order_status"
 
-    definition = {
+    definition: ClassVar[dict[str, object]] = {
         "name": name,
         "description": "Get the current status of an order.",
         "parameters": {

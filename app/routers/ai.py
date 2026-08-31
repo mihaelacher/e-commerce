@@ -1,3 +1,4 @@
+from typing import Annotated
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends
@@ -15,7 +16,7 @@ router = APIRouter(
 @router.post("/chat", response_model=AIChatResponse)
 def chat(
     request: AIChatRequest,
-    ai_service: AIService = Depends(get_ai_service),
+    ai_service: Annotated[AIService, Depends(get_ai_service)],
 ) -> AIChatResponse:
     conversation_id = (
         request.conversation_id

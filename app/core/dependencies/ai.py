@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import Depends
 from redis import Redis
 from sqlalchemy.orm import Session
@@ -26,8 +28,8 @@ def get_embedding_client() -> EmbeddingClient:
 
 
 def get_search_products_tool(
-    db: Session = Depends(get_db),
-    embedding_client: EmbeddingClient = Depends(get_embedding_client),
+    db: Annotated[Session, Depends(get_db)],
+    embedding_client: Annotated[EmbeddingClient, Depends(get_embedding_client)],
 ) -> SearchProductsTool:
     return SearchProductsTool(
         embedding_client=embedding_client,
@@ -36,7 +38,7 @@ def get_search_products_tool(
 
 
 def get_order_status_tool(
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ) -> GetOrderStatusTool:
     return GetOrderStatusTool(
         order_repository=OrderRepository(db),
@@ -44,7 +46,7 @@ def get_order_status_tool(
 
 
 def get_conversation_store(
-    redis: Redis = Depends(get_redis),
+    redis: Annotated[Redis, Depends(get_redis)],
 ) -> ConversationStore:
     return RedisConversationStore(
         redis=redis,
@@ -53,16 +55,19 @@ def get_conversation_store(
 
 
 def get_ai_service(
-    ai_client: LLMClient = Depends(get_ai_client),
-    conversation_store: ConversationStore = Depends(
-        get_conversation_store
-    ),
-    search_products_tool: SearchProductsTool = Depends(
-        get_search_products_tool
-    ),
-    order_status_tool: GetOrderStatusTool = Depends(
-        get_order_status_tool
-    ),
+    ai_client: Annotated[LLMClient, Depends(get_ai_client)],
+    conversation_store: Annotated[
+        ConversationStore,
+        Depends(get_conversation_store),
+    ],
+    search_products_tool: Annotated[
+        SearchProductsTool,
+        Depends(get_search_products_tool),
+    ],
+    order_status_tool: Annotated[
+        GetOrderStatusTool,
+        Depends(get_order_status_tool),
+    ],
 ) -> AIService:
     return AIService(
         ai_client=ai_client,

@@ -1,4 +1,4 @@
-from time import time
+from time import perf_counter
 from typing import Any
 
 from google import genai
@@ -16,6 +16,7 @@ logger = get_logger(__name__)
 class GeminiClient(LLMClient):
     def __init__(self) -> None:
         self.model = "gemini-3.6-flash"
+
         self.client = genai.Client(
             api_key=settings.gemini_api_key,
         )
@@ -26,7 +27,7 @@ class GeminiClient(LLMClient):
         tools: list[dict] | None = None,
         state: Any | None = None,
     ) -> LLMResponse:
-        start_time = time.perf_counter()
+        start_time = perf_counter()
 
         def request():
             user_content = types.Content(
@@ -42,7 +43,7 @@ class GeminiClient(LLMClient):
             ]
 
             response = self.client.models.generate_content(
-                model="gemini-3.6-flash",
+                model=self.model,
                 contents=contents,
                 config=types.GenerateContentConfig(
                     system_instruction=(
@@ -58,16 +59,9 @@ class GeminiClient(LLMClient):
                 response.candidates[0].content,
             ]
 
-            logger.info(
-                "llm_call_completed",
-                extra={
-                    "provider": "gemini",
-                    "model": self.model,
-                    "duration_ms": round(
-                        (time.perf_counter() - start_time) * 1000,
-                        2,
-                    ),
-                },
+            self._log_completed_call(
+                operation="chat",
+                start_time=start_time,
             )
 
             return self._to_response(
@@ -78,16 +72,9 @@ class GeminiClient(LLMClient):
         try:
             return with_retry(request)
         except Exception:
-            logger.exception(
-                "llm_call_failed",
-                extra={
-                    "provider": "gemini",
-                    "model": self.model,
-                    "duration_ms": round(
-                        (time.perf_counter() - start_time) * 1000,
-                        2,
-                    ),
-                },
+            self._log_failed_call(
+                operation="chat",
+                start_time=start_time,
             )
             raise
 
@@ -97,7 +84,7 @@ class GeminiClient(LLMClient):
         tool_result: Any,
         tools: list[dict] | None = None,
     ) -> LLMResponse:
-        start_time = time.perf_counter()
+        start_time = perf_counter()
 
         def request():
             function_response = types.Content(
@@ -118,7 +105,7 @@ class GeminiClient(LLMClient):
             ]
 
             response = self.client.models.generate_content(
-                model="gemini-3.6-flash",
+                model=self.model,
                 contents=contents,
                 config=types.GenerateContentConfig(
                     system_instruction=(
@@ -136,16 +123,9 @@ class GeminiClient(LLMClient):
                 response.candidates[0].content,
             ]
 
-            logger.info(
-                "llm_tool_result_completed",
-                extra={
-                    "provider": "gemini",
-                    "model": self.model,
-                    "duration_ms": round(
-                        (time.perf_counter() - start_time) * 1000,
-                        2,
-                    ),
-                },
+            self._log_completed_call(
+                operation="tool_result",
+                start_time=start_time,
             )
 
             return self._to_response(
@@ -156,16 +136,9 @@ class GeminiClient(LLMClient):
         try:
             return with_retry(request)
         except Exception:
-            logger.exception(
-                "llm_tool_call_failed",
-                extra={
-                    "provider": "gemini",
-                    "model": self.model,
-                    "duration_ms": round(
-                        (time.perf_counter() - start_time) * 1000,
-                        2,
-                    ),
-                },
+            self._log_failed_call(
+                operation="tool_result",
+                start_time=start_time,
             )
             raise
 
@@ -229,4 +202,40 @@ class GeminiClient(LLMClient):
         return LLMResponse(
             content=response.text,
             state=state,
+        )
+
+    def _log_completed_call(
+        self,
+        operation: str,
+        start_time: float,
+    ) -> None:
+        logger.info(
+            "llm_call_completed",
+            extra={
+                "provider": "gemini",
+                "model": self.model,
+                "operation": operation,
+                "duration_ms": round(
+                    (perf_counter() - start_time) * 1000,
+                    2,
+                ),
+            },
+        )
+
+    def _log_failed_call(
+        self,
+        operation: str,
+        start_time: float,
+    ) -> None:
+        logger.exception(
+            "llm_call_failed",
+            extra={
+                "provider": "gemini",
+                "model": self.model,
+                "operation": operation,
+                "duration_ms": round(
+                    (perf_counter() - start_time) * 1000,
+                    2,
+                ),
+            },
         )

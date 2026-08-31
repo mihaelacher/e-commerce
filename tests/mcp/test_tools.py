@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 
@@ -97,7 +97,7 @@ async def test_get_order_status() -> None:
         id=1,
         status="payment_pending",
     )
-    mocked_order.created_at = datetime(2026, 8, 31, 10, 0)
+    mocked_order.created_at = datetime(2026, 8, 31, 10, 0, tzinfo=UTC)
 
     with patch(
         "app.mcp.server.OrderRepository.get",

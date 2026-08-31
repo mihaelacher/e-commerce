@@ -1,4 +1,5 @@
 from datetime import date
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
@@ -11,30 +12,21 @@ router = APIRouter(
     tags=["Analytics"],
 )
 
+
 @router.get("/sales/products")
 def get_best_selling_products(
-      from_date: date | None = Query(
-        None,
-        alias="from",
-    ),
-    to_date: date | None = Query(
-        None,
-        alias="to",
-    ),
-    limit: int = Query(
-        10,
-        ge=1,
-        le=100,
-    ),
-    db: Session = Depends(get_db),
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
+    db: Annotated[Session, Depends(get_db)] = None,
 ):
     return analytics_service.get_best_selling_products(db, from_date, to_date, limit)
 
 
 @router.get("/sales/daily")
 def get_daily_sales(
-    from_date: date | None = Query(None, alias="from"),
-    to_date: date | None = Query(None, alias="to"),
-    db: Session = Depends(get_db),
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+    db: Annotated[Session, Depends(get_db)] = None,
 ):
     return analytics_service.get_daily_sales(db, from_date, to_date)

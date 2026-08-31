@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
@@ -22,7 +24,7 @@ router = APIRouter(
 )
 def create_product(
     product: ProductCreate,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     return product_service.create_product(
         db=db,
@@ -35,18 +37,12 @@ def create_product(
     response_model=list[ProductResponse],
 )
 def list_products(
-    skip: int = Query(
-        0,
-        ge=0,
-        description="Number of products to skip",
-    ),
-    limit: int = Query(
-        100,
-        ge=1,
-        le=100,
-        description="Maximum number of products to return",
-    ),
-    db: Session = Depends(get_db),
+    skip: Annotated[int, Query(ge=0, description="Number of products to skip")] = 0,
+    limit: Annotated[
+        int,
+        Query(ge=1, le=100, description="Maximum number of products to return"),
+    ] = 100,
+    db: Annotated[Session, Depends(get_db)] = None,
 ):
     return product_service.list_products(
         db,
@@ -61,7 +57,7 @@ def list_products(
 )
 def get_product(
     product_id: int,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     return product_service.get_product(
         db,
@@ -76,7 +72,7 @@ def get_product(
 def update_product(
     product_id: int,
     product: ProductUpdate,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     return product_service.update_product(
         db,
@@ -91,7 +87,7 @@ def update_product(
 )
 def delete_product(
     product_id: int,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     product_service.delete_product(
         db,

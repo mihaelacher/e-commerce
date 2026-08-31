@@ -1,11 +1,13 @@
+from typing import ClassVar
+
 from app.ai.clients.embedding_base import EmbeddingClient
 from app.repositories.product import ProductRepository
 
 
 class SearchProductsTool:
-    name = "search_products"
+    name: ClassVar[str] = "search_products"
 
-    definition = {
+    definition: ClassVar[dict[str, object]] = {
         "name": name,
         "description": "Search available products matching the customer's request.",
         "parameters": {

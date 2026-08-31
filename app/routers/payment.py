@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Header, HTTPException
 from sqlalchemy.orm import Session
 
@@ -19,9 +21,9 @@ router = APIRouter(
 )
 def pay_order(
     order_id: int,
-    idempotency_key: str = Header(..., alias="Idempotency-Key"),
-    db: Session = Depends(get_db),
-    provider: PaymentGateway = Depends(get_payment_provider),
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
+    db: Annotated[Session, Depends(get_db)],
+    provider: Annotated[PaymentGateway, Depends(get_payment_provider)],
 ) -> PaymentResponse:
     return create_payment(
         db=db,
@@ -34,11 +36,10 @@ def pay_order(
 @router.post("/webhook")
 def payment_webhook(
     payload: dict,
-    signature: str = Header(..., alias="X-Webhook-Signature"),
-    db: Session = Depends(get_db),
-    provider: PaymentGateway = Depends(get_payment_provider),
+    signature: Annotated[str, Header(alias="X-Webhook-Signature")],
+    db: Annotated[Session, Depends(get_db)],
+    provider: Annotated[PaymentGateway, Depends(get_payment_provider)],
 ) -> PaymentResponse:
-
     if not provider.verify_webhook(payload, signature):
         raise HTTPException(
             status_code=401,

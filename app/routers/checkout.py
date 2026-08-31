@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
@@ -17,7 +19,7 @@ router = APIRouter(
 )
 def get_order(
     order_id: int,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     return checkout_service.get_order_with_items(db, order_id=order_id)
 
@@ -29,7 +31,7 @@ def get_order(
 )
 def create_order(
     order_data: OrderCreate,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     return checkout_service.create_order(
         db,
@@ -45,7 +47,7 @@ def create_order(
 def add_to_cart(
     order_id: int,
     checkout_item: CheckoutItem,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     return checkout_service.add_order_item(
         db,
@@ -62,7 +64,7 @@ def add_to_cart(
 def remove_order_item(
     order_id: int,
     item_id: int,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     checkout_service.remove_order_item(
         db,
@@ -78,7 +80,7 @@ def remove_order_item(
 def decrease_order_item(
     order_id: int,
     item_id: int,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     return checkout_service.decrease_order_item(
         db,
@@ -93,7 +95,7 @@ def decrease_order_item(
 )
 def checkout(
     order_id: int,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ):
     return checkout_service.checkout(
         db,
