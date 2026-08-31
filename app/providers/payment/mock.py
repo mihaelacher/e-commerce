@@ -1,7 +1,6 @@
 import random
-from decimal import Decimal
-import time
 import uuid
+from decimal import Decimal
 
 from app.enums.payment_provider import PaymentProvider
 from app.providers.payment.base import PaymentResult

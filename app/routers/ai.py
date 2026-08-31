@@ -6,7 +6,6 @@ from app.core.dependencies.ai import get_ai_service
 from app.schemas.ai import AIChatRequest, AIChatResponse
 from app.services.ai import AIService
 
-
 router = APIRouter(
     prefix="/ai",
     tags=["Chat"],

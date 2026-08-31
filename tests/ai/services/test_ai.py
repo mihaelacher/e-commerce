@@ -23,21 +23,20 @@ class FakeConversationStore:
 class FakeSearchProductsTool:
     name = "search_products"
 
-    definition = {
-        "name": name,
-        "description": "Search products.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "query": {"type": "string"},
-                "min_price": {"type": "number"},
-                "max_price": {"type": "number"},
-            },
-            "required": ["query"],
-        },
-    }
-
     def __init__(self, result=None):
+        self.definition = {
+            "name": self.name,
+            "description": "Search products.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {"type": "string"},
+                    "min_price": {"type": "number"},
+                    "max_price": {"type": "number"},
+                },
+                "required": ["query"],
+            },
+        }
         self.result = result or []
         self.was_called = False
         self.arguments = None
@@ -61,21 +60,20 @@ class FakeSearchProductsTool:
 class FakeGetOrderStatusTool:
     name = "get_order_status"
 
-    definition = {
-        "name": name,
-        "description": "Get the current status of an order.",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "order_id": {
-                    "type": "integer",
-                },
-            },
-            "required": ["order_id"],
-        },
-    }
-
     def __init__(self):
+        self.definition = {
+            "name": self.name,
+            "description": "Get the current status of an order.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "order_id": {
+                        "type": "integer",
+                    },
+                },
+                "required": ["order_id"],
+            },
+        }
         self.was_called = False
         self.order_id = None
 

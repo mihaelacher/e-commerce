@@ -1,6 +1,6 @@
+import smtplib
 from decimal import Decimal
 from email.message import EmailMessage
-import smtplib
 
 from app.core.config import settings
 

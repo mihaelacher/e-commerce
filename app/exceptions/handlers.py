@@ -9,8 +9,8 @@ from app.exceptions.checkout import (
     OrderItemNotFoundError,
     OrderNotFoundError,
 )
-from app.exceptions.product import ProductNotFoundError
 from app.exceptions.payment import OrderCannotBePaidError, PaymentNotFoundError
+from app.exceptions.product import ProductNotFoundError
 
 
 async def product_not_found_handler(

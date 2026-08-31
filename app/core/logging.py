@@ -3,7 +3,6 @@ from typing import Any
 
 from app.core.config import settings
 
-
 logger = logging.getLogger("ecommerce_api")
 
 
@@ -28,8 +27,11 @@ def capture_exception(exc: Exception, **context: Any) -> None:
             if context:
                 sentry_sdk.set_context("context", context)
             sentry_sdk.capture_exception(exc)
-        except Exception:
-            pass
+        except Exception as sentry_exc:
+            logger.warning(
+                "sentry_capture_failed",
+                extra={"context": context, "error": str(sentry_exc)},
+            )
 
     logger.exception("captured_exception", extra={"context": context})
 
@@ -46,5 +48,8 @@ def setup_error_tracking() -> None:
             environment=settings.environment,
             traces_sample_rate=0.1,
         )
-    except Exception:
-        pass
+    except Exception as sentry_exc:
+        logger.warning(
+            "sentry_init_failed",
+            extra={"error": str(sentry_exc)},
+        )

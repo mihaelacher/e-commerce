@@ -5,7 +5,6 @@ from app.api.v1.deps import get_db
 from app.schemas.checkout import OrderResponse
 from app.services import order as order_service
 
-
 router = APIRouter(
     prefix="/orders",
     tags=["Orders"],

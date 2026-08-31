@@ -7,7 +7,6 @@ from app.enums.order import OrderStatus
 from app.enums.payment_provider import PaymentProvider
 from app.enums.payment_status import PaymentStatus
 from app.models.order import OrderModel
-from app.models.payment import PaymentModel
 from app.repositories.payment import PaymentRepository
 
 
@@ -30,11 +29,10 @@ def seed_payments() -> None:
 
         with transaction(db):
             for order in orders:
-
-                if order.status == OrderStatus.COMPLETED:
-                    status = PaymentStatus.PAID
-
-                elif order.status == OrderStatus.PAID:
+                if order.status in {
+                    OrderStatus.COMPLETED,
+                    OrderStatus.PAID,
+                }:
                     status = PaymentStatus.PAID
 
                 elif order.status == OrderStatus.PAYMENT_PENDING:

@@ -7,7 +7,6 @@ from app.core.dependencies.ai import get_embedding_client
 from app.repositories.order import OrderRepository
 from app.repositories.product import ProductRepository
 
-
 mcp = MCPServer("ecommerce")
 
 

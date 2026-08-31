@@ -1,5 +1,5 @@
 import random
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -10,7 +10,6 @@ from app.models.product import ProductModel
 from app.repositories.order import OrderRepository
 from app.repositories.order_item import OrderItemRepository
 from scripts.seed.product_data import PRODUCTS
-
 
 NUMBER_OF_ORDERS = 100
 DAYS_OF_HISTORY = 30
@@ -53,7 +52,7 @@ def choose_products(
 
 
 def random_order_date() -> datetime:
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
 
     days_ago = random.randint(0, DAYS_OF_HISTORY - 1)
     hours_ago = random.randint(0, 23)

@@ -1,6 +1,5 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from types import SimpleNamespace
-from unittest import result
 
 from app.ai.tools.get_order_status import GetOrderStatusTool
 
@@ -10,13 +9,13 @@ class FakeOrderRepository:
         return SimpleNamespace(
             id=order_id,
             status="processing",
-            created_at=datetime(2026, 8, 29, 12, 0),
+            created_at=datetime(2026, 8, 29, 12, 0, tzinfo=UTC),
         )
 
 
 class EmptyOrderRepository:
     def get(self, order_id: int):
-        return None    
+        return None
 
 
 def test_get_order_status():
@@ -24,10 +23,10 @@ def test_get_order_status():
         order_repository=FakeOrderRepository(),
     )
 
-    result = tool.execute(order_id=42)
+    execution_result = tool.execute(order_id=42)
 
-    assert result["order_id"] == 42
-    assert result["status"] == "processing"
+    assert execution_result["order_id"] == 42
+    assert execution_result["status"] == "processing"
 
 
 def test_get_order_status_when_order_does_not_exist():
@@ -35,9 +34,9 @@ def test_get_order_status_when_order_does_not_exist():
         order_repository=EmptyOrderRepository(),
     )
 
-    result = tool.execute(order_id=999)
+    execution_result = tool.execute(order_id=999)
 
-    assert result == {
+    assert execution_result == {
         "order_id": 999,
         "found": False,
     }

@@ -1,15 +1,13 @@
+import json
 from datetime import datetime
 from decimal import Decimal
-import json
 from unittest.mock import MagicMock, patch
 
-from fastapi.testclient import TestClient
 import pytest
-
+from fastapi.testclient import TestClient
 from mcp import Client
 
 from app.mcp.server import mcp
-
 
 
 def create_order(client: TestClient, *, email: str = "customer@example.com") -> dict:

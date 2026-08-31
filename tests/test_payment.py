@@ -1,13 +1,11 @@
 from decimal import Decimal
 
 import pytest
-import pytest
 from sqlalchemy.orm import Session
 
 from app.enums.order import OrderStatus
 from app.enums.payment_provider import PaymentProvider
 from app.enums.payment_status import PaymentStatus
-from app.exceptions.payment import OrderCannotBePaidError
 from app.exceptions.payment import OrderCannotBePaidError
 from app.models.order import OrderModel
 from app.models.order_item import OrderItemModel
@@ -18,7 +16,7 @@ from app.providers.payment.mock import MockPaymentProvider
 from app.services.checkout import checkout
 from app.services.payment import create_payment, handle_payment_webhook
 from app.tasks.payment import process_payment
-from tests.conftest import db
+
 
 def test_create_payment_success(db):
     order = create_order(db)

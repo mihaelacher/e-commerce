@@ -2,6 +2,7 @@ from app.core.database import SessionLocal, transaction
 from app.repositories.product import ProductRepository
 from scripts.seed.product_data import PRODUCTS
 
+
 def seed_products() -> None:
     db = SessionLocal()
 
@@ -22,5 +23,5 @@ def seed_products() -> None:
 
 
 if __name__ == "__main__":
-    seed_products()        
+    seed_products()
     print(f"Seeded {len(PRODUCTS)} products.")

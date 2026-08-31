@@ -1,11 +1,15 @@
-import logging
 import time
 import uuid
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.core.logging import configure_logging, capture_exception, get_logger, setup_error_tracking
+from app.core.logging import (
+    capture_exception,
+    configure_logging,
+    get_logger,
+    setup_error_tracking,
+)
 from app.exceptions.ai import AIProviderUnavailableError
 from app.exceptions.checkout import (
     EmptyOrderError,
@@ -27,7 +31,7 @@ from app.exceptions.handlers import (
 )
 from app.exceptions.payment import OrderCannotBePaidError, PaymentNotFoundError
 from app.exceptions.product import ProductNotFoundError
-from app.routers import analytics, ai, checkout, order, payment, product
+from app.routers import ai, analytics, checkout, order, payment, product
 
 configure_logging()
 setup_error_tracking()

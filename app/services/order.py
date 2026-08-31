@@ -1,7 +1,6 @@
 
 from sqlalchemy.orm import Session
 
-from app.exceptions import product
 from app.exceptions.checkout import OrderNotFoundError
 from app.models.order import OrderModel
 from app.repositories.order import OrderRepository

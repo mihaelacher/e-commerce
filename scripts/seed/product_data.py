@@ -1,6 +1,5 @@
 from decimal import Decimal
 
-
 PRODUCTS = [
     {
         "name": "Mechanical Keyboard",

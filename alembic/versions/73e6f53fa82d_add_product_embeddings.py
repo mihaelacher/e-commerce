@@ -5,18 +5,18 @@ Revises: c7a4e9f2b1d6
 Create Date: 2026-08-28 16:05:15.080291
 
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
 
-from alembic import op
 import pgvector
 import sqlalchemy as sa
 
+from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = '73e6f53fa82d'
-down_revision: Union[str, Sequence[str], None] = 'c7a4e9f2b1d6'
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | Sequence[str] | None = 'c7a4e9f2b1d6'
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:

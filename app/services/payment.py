@@ -14,7 +14,10 @@ from app.providers.payment.base import PaymentGateway
 from app.repositories.order import OrderRepository
 from app.repositories.payment import PaymentRepository
 from app.repositories.product import ProductRepository
-from app.tasks.order_confirmation import notify_order_created_task, send_order_confirmation_task
+from app.tasks.order_confirmation import (
+    notify_order_created_task,
+    send_order_confirmation_task,
+)
 from app.tasks.payment import process_payment
 
 logger = get_logger(__name__)

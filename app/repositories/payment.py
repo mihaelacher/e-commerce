@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 from sqlalchemy import select, update
@@ -80,7 +80,7 @@ class PaymentRepository(BaseRepository[PaymentModel]):
         payment_id: int,
         processing_timeout: timedelta,
     ) -> bool:
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         threshold = now - processing_timeout    
 
         stmt = (

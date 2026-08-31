@@ -1,5 +1,4 @@
 from app.ai.clients.embedding_base import EmbeddingClient
-from app.models.product import ProductModel
 from app.repositories.product import ProductRepository
 
 
