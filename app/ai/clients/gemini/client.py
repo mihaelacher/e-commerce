@@ -1,3 +1,4 @@
+from time import time
 from typing import Any
 
 from google import genai
@@ -7,10 +8,15 @@ from app.ai.clients.gemini.helper import with_retry
 from app.ai.clients.llm_base import LLMClient
 from app.ai.models import LLMResponse, ToolCall
 from app.core.config import settings
+from app.core.logging import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class GeminiClient(LLMClient):
     def __init__(self) -> None:
+        self.model = "gemini-3.6-flash"
         self.client = genai.Client(
             api_key=settings.gemini_api_key,
         )
@@ -21,6 +27,8 @@ class GeminiClient(LLMClient):
         tools: list[dict] | None = None,
         state: Any | None = None,
     ) -> LLMResponse:
+        start_time = time.perf_counter()
+
         def request():
             user_content = types.Content(
                 role="user",
@@ -51,12 +59,38 @@ class GeminiClient(LLMClient):
                 response.candidates[0].content,
             ]
 
+            logger.info(
+                "llm_call_completed",
+                extra={
+                    "provider": "gemini",
+                    "model": self.model,
+                    "duration_ms": round(
+                        (time.perf_counter() - start_time) * 1000,
+                        2,
+                    ),
+                },
+            )
+
             return self._to_response(
                 response=response,
                 state=new_state,
             )
 
-        return with_retry(request)
+        try:
+            return with_retry(request)
+        except Exception:
+            logger.exception(
+                "llm_call_failed",
+                extra={
+                    "provider": "gemini",
+                    "model": self.model,
+                    "duration_ms": round(
+                        (time.perf_counter() - start_time) * 1000,
+                        2,
+                    ),
+                },
+            )
+            raise
 
     def chat_with_tool_result(
         self,
@@ -64,6 +98,8 @@ class GeminiClient(LLMClient):
         tool_result: Any,
         tools: list[dict] | None = None,
     ) -> LLMResponse:
+        start_time = time.perf_counter()
+
         def request():
             function_response = types.Content(
                 role="user",
@@ -101,12 +137,38 @@ class GeminiClient(LLMClient):
                 response.candidates[0].content,
             ]
 
+            logger.info(
+                "llm_tool_result_completed",
+                extra={
+                    "provider": "gemini",
+                    "model": self.model,
+                    "duration_ms": round(
+                        (time.perf_counter() - start_time) * 1000,
+                        2,
+                    ),
+                },
+            )
+
             return self._to_response(
                 response=response,
                 state=new_state,
             )
 
-        return with_retry(request)
+        try:
+            return with_retry(request)
+        except Exception:
+            logger.exception(
+                "llm_tool_call_failed",
+                extra={
+                    "provider": "gemini",
+                    "model": self.model,
+                    "duration_ms": round(
+                        (time.perf_counter() - start_time) * 1000,
+                        2,
+                    ),
+                },
+            )
+            raise
 
     def serialize_state(
         self,

@@ -27,11 +27,28 @@ def generate_product_embedding_task(product_id: int) -> None:
             logger.warning("embedding_task_product_missing", extra={"product_id": product_id})
             return
 
-        product.embedding = get_embedding_client().embed(
-            build_product_text(product)
+        text = build_product_text(product)
+
+        logger.info(
+            "embedding_generation_started",
+            extra={
+                "product_id": product_id,
+                "text_length": len(text),
+            },
         )
+
+        embedding = get_embedding_client().embed(text)
+        product.embedding = embedding
         db.commit()
-        logger.info("embedding_task_completed", extra={"product_id": product_id})
+
+        logger.info(
+            "embedding_task_completed",
+            extra={
+                "product_id": product_id,
+                "embedding_size": len(embedding),
+            },
+        )
+        
     except Exception as exc:
         db.rollback()
         logger.exception("embedding_task_failed", extra={"product_id": product_id})

@@ -1,6 +1,9 @@
+import time
+
 from sqlalchemy.orm import Session
 
 from app.core.database import transaction
+from app.core.logging import get_logger
 from app.enums.order import OrderStatus
 from app.enums.payment_status import PaymentStatus
 from app.exceptions.checkout import OrderNotFoundError
@@ -14,6 +17,8 @@ from app.repositories.product import ProductRepository
 from app.tasks.order_confirmation import notify_order_created_task, send_order_confirmation_task
 from app.tasks.payment import process_payment
 
+logger = get_logger(__name__)
+
 
 def create_payment(
     db: Session,
@@ -23,6 +28,12 @@ def create_payment(
 ) -> PaymentModel:
     order_repository = OrderRepository(db)
     payment_repository = PaymentRepository(db)
+    start_time = time.perf_counter()
+
+    logger.info(
+        "payment_creation_started",
+        extra={"order_id": order_id, "provider": provider.type},
+    )
 
     with transaction(db):
         order = order_repository.get_for_update(order_id)
@@ -36,6 +47,14 @@ def create_payment(
         )
 
         if existing_payment is not None:
+            logger.info(
+                "payment_creation_existing",
+                extra={
+                    "order_id": order_id,
+                    "payment_id": existing_payment.id,
+                    "duration_ms": round((time.perf_counter() - start_time) * 1000, 2),
+                },
+            )
             return existing_payment
 
         if payment_repository.has_successful_payment(order_id):
@@ -50,7 +69,17 @@ def create_payment(
             idempotency_key=idempotency_key,
         )
 
-    process_payment.delay(payment.id)    
+    process_payment.delay(payment.id)
+
+    logger.info(
+        "payment_creation_completed",
+        extra={
+            "order_id": order_id,
+            "payment_id": payment.id,
+            "provider": provider.type,
+            "duration_ms": round((time.perf_counter() - start_time) * 1000, 2),
+        },
+    )
 
     return payment
 
@@ -66,6 +95,15 @@ def handle_payment_webhook(
     payload: dict,
     provider: PaymentGateway,
 ) -> PaymentModel:
+    start_time = time.perf_counter()
+    logger.info(
+        "payment_webhook_received",
+        extra={
+            "provider": provider.type,
+            "transaction_id": payload.get("transaction_id"),
+        },
+    )
+
     result = provider.parse_webhook(payload)
 
     payment_repository = PaymentRepository(db)
@@ -83,6 +121,14 @@ def handle_payment_webhook(
             )
 
         if payment.status != PaymentStatus.PENDING:
+            logger.info(
+                "payment_webhook_ignored",
+                extra={
+                    "payment_id": payment.id,
+                    "current_status": payment.status.value,
+                    "duration_ms": round((time.perf_counter() - start_time) * 1000, 2),
+                },
+            )
             return payment
 
         order = order_repository.get_with_items_for_update(payment.order_id)
@@ -116,5 +162,15 @@ def handle_payment_webhook(
             order_id=order.id,
             total=str(order.total),
         )
+
+    logger.info(
+        "payment_webhook_processed",
+        extra={
+            "payment_id": payment.id,
+            "order_id": order.id,
+            "success": result.success,
+            "duration_ms": round((time.perf_counter() - start_time) * 1000, 2),
+        },
+    )
 
     return payment
