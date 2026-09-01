@@ -26,6 +26,7 @@ def chat(
     message = ai_service.chat(
         message=request.message,
         conversation_id=conversation_id,
+        confirm_action=request.confirm_action,
     )
 
     return AIChatResponse(

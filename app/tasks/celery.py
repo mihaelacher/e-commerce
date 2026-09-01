@@ -10,6 +10,7 @@ celery_app = Celery(
         "app.tasks.order_confirmation",
         "app.tasks.embeddings",
         "app.tasks.payment",
+        "app.tasks.refund_payment",
     ],
 )
 

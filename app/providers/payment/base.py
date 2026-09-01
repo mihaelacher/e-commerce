@@ -18,11 +18,21 @@ class PaymentGateway(Protocol):
         ...
 
 
+    def refund(
+        self,
+        transaction_id: str,
+        amount: Decimal,
+        idempotency_key: str,
+    ) -> PaymentResult:
+        ...    
+
+
     def parse_webhook(
         self,
         data: dict,
     ) -> PaymentResult:
         ...    
+
 
     def verify_webhook(
         self,

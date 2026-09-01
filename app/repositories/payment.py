@@ -13,6 +13,19 @@ class PaymentRepository(BaseRepository[PaymentModel]):
     def __init__(self, db: Session):
         super().__init__(PaymentModel, db)
 
+    def get_for_update(
+        self,
+        payment_id: int,
+    ) -> PaymentModel | None:
+        stmt = (
+            select(self.model)
+            .where(self.model.id == payment_id)
+            .with_for_update()
+        )
+
+        return self.db.scalar(stmt)
+        
+
     def get_by_idempotency_key(
         self,
         order_id: int,
@@ -25,6 +38,7 @@ class PaymentRepository(BaseRepository[PaymentModel]):
         )
 
         return self.db.scalar(stmt)
+
     
     def create(
         self,
@@ -100,3 +114,32 @@ class PaymentRepository(BaseRepository[PaymentModel]):
         self.db.commit()    
 
         return result.rowcount == 1
+
+    def get_paid_by_order_id_for_update(
+        self,
+        order_id: int,
+    ) -> PaymentModel | None:
+        stmt = (
+            select(self.model)
+            .where(self.model.order_id == order_id)
+            .where(self.model.status == PaymentStatus.PAID)
+            .with_for_update()
+        )
+
+        return self.db.scalar(stmt)
+
+
+    def get_refund_pending_by_order_id(
+    self,
+    order_id: int,
+    ) -> PaymentModel | None:
+        stmt = (
+            select(self.model)
+            .where(self.model.order_id == order_id)
+            .where(
+                self.model.status
+                == PaymentStatus.REFUND_PENDING
+            )
+        )
+
+        return self.db.scalar(stmt)

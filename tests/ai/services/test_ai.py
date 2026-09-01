@@ -1,26 +1,52 @@
+from typing import ClassVar
+
 import pytest
 
 from app.ai.models import LLMResponse, ToolCall
-from app.ai.tools.shemas import GetOrderStatusInput, SearchProductsInput
+from app.ai.tools.schemas import GetOrderStatusInput, SearchProductsInput
 from app.services.ai import AIService
 
 
 class FakeConversationStore:
-    def __init__(self, stored_state=None):
+    def __init__(
+        self,
+        stored_state=None,
+    ):
         self.stored_state = stored_state
-        self.saved_conversation_id = None
         self.saved_state = None
+        self.pending_tool_call = None
 
-    def get(self, conversation_id: str):
+    def get(
+        self,
+        conversation_id: str,
+    ):
         return self.stored_state
 
     def save(
         self,
         conversation_id: str,
         state,
-    ) -> None:
-        self.saved_conversation_id = conversation_id
+    ):
         self.saved_state = state
+
+    def get_pending_tool_call(
+        self,
+        conversation_id: str,
+    ):
+        return self.pending_tool_call
+
+    def save_pending_tool_call(
+        self,
+        conversation_id: str,
+        tool_call,
+    ):
+        self.pending_tool_call = tool_call
+
+    def clear_pending_tool_call(
+        self,
+        conversation_id: str,
+    ):
+        self.pending_tool_call = None
 
 
 class FakeSearchProductsTool:
@@ -369,6 +395,44 @@ class RecoveringAIClient:
     def deserialize_state(self, state):
         return state    
 
+from app.ai.models import PendingToolCall
+
+
+class ConfirmableTool:
+    name = "cancel_order"
+    requires_confirmation = True
+    input_model = GetOrderStatusInput
+
+    definition: ClassVar[dict] = {
+        "name": name,
+        "description": "Cancel an order.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "order_id": {
+                    "type": "integer",
+                },
+            },
+            "required": ["order_id"],
+        },
+    }
+
+    def __init__(self):
+        self.was_called = False
+        self.received_order_id = None
+
+    def execute(
+        self,
+        order_id: int,
+    ):
+        self.was_called = True
+        self.received_order_id = order_id
+
+        return {
+            "success": True,
+            "order_id": order_id,
+        }
+
 
 def test_ai_service_passes_empty_tool_result_to_llm():
     ai_client = EmptyResultAIClient()
@@ -399,6 +463,41 @@ def test_ai_service_passes_empty_tool_result_to_llm():
     assert answer == (
         "I couldn't find any matching products."
     )
+
+
+class ConfirmableToolAIClient:
+    def chat(
+        self,
+        message,
+        tools=None,
+        state=None,
+    ):
+        return LLMResponse(
+            tool_call=ToolCall(
+                name="cancel_order",
+                arguments={"order_id": 42},
+            ),
+            state=["tool-call-state"],
+        )
+
+    def chat_with_tool_result(
+        self,
+        previous_response,
+        tool_result,
+        tools=None,
+    ):
+        self.received_tool_result = tool_result
+
+        return LLMResponse(
+            content="Action handled.",
+            state=["final-state"],
+        )
+
+    def serialize_state(self, state):
+        return state
+
+    def deserialize_state(self, state):
+        return state
 
 
 def test_ai_service_executes_multiple_tools():
@@ -590,3 +689,105 @@ def test_ai_service_recovers_from_invalid_tool_arguments():
     assert conversation_store.saved_state == [
         "final-state"
     ]    
+
+
+def test_ai_service_does_not_execute_tool_without_confirmation():
+    ai_client = ConfirmableToolAIClient()
+    conversation_store = FakeConversationStore()
+    tool = ConfirmableTool()
+
+    service = AIService(
+        ai_client=ai_client,
+        conversation_store=conversation_store,
+        tools=[tool],
+    )
+
+    answer = service.chat(
+        message="Cancel order 42",
+        conversation_id="conversation-1",
+    )
+
+    assert tool.was_called is False
+
+    assert conversation_store.pending_tool_call == PendingToolCall(
+        name="cancel_order",
+        arguments={"order_id": 42},
+    )
+
+    assert conversation_store.saved_state == [
+        "tool-call-state"
+    ]
+
+    assert "Please confirm" in answer
+
+
+def test_ai_service_executes_pending_tool_when_confirmed():
+    ai_client = ConfirmableToolAIClient()
+
+    conversation_store = FakeConversationStore(
+        stored_state=["tool-call-state"],
+    )
+
+    conversation_store.pending_tool_call = PendingToolCall(
+        name="cancel_order",
+        arguments={"order_id": 42},
+    )
+
+    tool = ConfirmableTool()
+
+    service = AIService(
+        ai_client=ai_client,
+        conversation_store=conversation_store,
+        tools=[tool],
+    )
+
+    answer = service.chat(
+        message="",
+        conversation_id="conversation-1",
+        confirm_action=True,
+    )
+
+    assert tool.was_called is True
+    assert tool.received_order_id == 42
+
+    assert conversation_store.pending_tool_call is None
+
+    assert conversation_store.saved_state == [
+        "final-state"
+    ]
+
+    assert answer == "Action handled."
+
+
+def test_ai_service_does_not_execute_pending_tool_when_rejected():
+    ai_client = ConfirmableToolAIClient()
+
+    conversation_store = FakeConversationStore(
+        stored_state=["tool-call-state"],
+    )
+
+    conversation_store.pending_tool_call = PendingToolCall(
+        name="cancel_order",
+        arguments={"order_id": 42},
+    )
+
+    tool = ConfirmableTool()
+
+    service = AIService(
+        ai_client=ai_client,
+        conversation_store=conversation_store,
+        tools=[tool],
+    )
+
+    service.chat(
+        message="",
+        conversation_id="conversation-1",
+        confirm_action=False,
+    )
+
+    assert tool.was_called is False
+    assert conversation_store.pending_tool_call is None
+
+    assert conversation_store.saved_state == [
+        "final-state"
+    ]                

@@ -1,12 +1,13 @@
 from typing import ClassVar
 
-from app.ai.tools.shemas import GetOrderStatusInput
+from app.ai.tools.schemas import GetOrderStatusInput
 from app.repositories.order import OrderRepository
 
 
 class GetOrderStatusTool:
     name: ClassVar[str] = "get_order_status"
     input_model = GetOrderStatusInput
+    requires_confirmation = False
 
     definition: ClassVar[dict[str, object]] = {
         "name": name,

@@ -10,6 +10,7 @@ from app.ai.clients.gemini.embedding import GeminiEmbeddingClient
 from app.ai.clients.llm_base import LLMClient
 from app.ai.conversation.redis_store import RedisConversationStore
 from app.ai.conversation.store import ConversationStore
+from app.ai.tools.cancel_order import CancelOrderTool
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_products import SearchProductsTool
 from app.core.database import get_db
@@ -45,6 +46,14 @@ def get_order_status_tool(
     )
 
 
+def get_cancel_order_tool(
+    db: Annotated[Session, Depends(get_db)],
+) -> CancelOrderTool:
+    return CancelOrderTool(
+        db=db,
+    )
+
+
 def get_conversation_store(
     redis: Annotated[Redis, Depends(get_redis)],
 ) -> ConversationStore:
@@ -68,6 +77,10 @@ def get_ai_service(
         GetOrderStatusTool,
         Depends(get_order_status_tool),
     ],
+    cancel_order_tool: Annotated[
+        CancelOrderTool,
+        Depends(get_cancel_order_tool),
+    ],
 ) -> AIService:
     return AIService(
         ai_client=ai_client,
@@ -75,5 +88,6 @@ def get_ai_service(
         tools=[
             search_products_tool,
             order_status_tool,
+            cancel_order_tool,
         ],
     )

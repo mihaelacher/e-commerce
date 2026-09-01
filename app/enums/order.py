@@ -7,3 +7,4 @@ class OrderStatus(StrEnum):
     PAID = "paid"
     COMPLETED = "completed"
     CANCELLED = "cancelled"
+    CANCELLATION_PENDING = "cancellation_pending"

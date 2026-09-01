@@ -31,6 +31,31 @@ class MockPaymentProvider:
         )
 
 
+    def refund(
+        self,
+        transaction_id: str,
+        amount: Decimal,
+        idempotency_key: str,
+    ) -> PaymentResult:
+        success = (
+            self.should_succeed
+            if self.should_succeed is not None
+            else random.choice([True, False])
+        )
+
+        result = PaymentResult(
+            success=success,
+            transaction_id=(
+                f"mock_refund_{uuid.uuid4()}"
+                if success
+                else None
+            ),
+        )
+
+        self.refunds[idempotency_key] = result
+
+        return result
+
     def parse_webhook(
         self,
         data: dict,

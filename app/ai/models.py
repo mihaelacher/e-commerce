@@ -14,3 +14,9 @@ class LLMResponse:
     tool_call: ToolCall | None = None
     state: object | None = None
     conversation_ref: str | None = None
+
+
+@dataclass
+class PendingToolCall:
+    name: str
+    arguments: dict    
