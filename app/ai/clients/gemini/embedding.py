@@ -15,6 +15,9 @@ class GeminiEmbeddingClient(EmbeddingClient):
     def __init__(self) -> None:
         self.client = genai.Client(
             api_key=settings.gemini_api_key,
+            http_options=types.HttpOptions(
+                timeout=settings.ai_client_timeout_ms,
+            ),
         )
 
     def embed(self, text: str) -> list[float]:

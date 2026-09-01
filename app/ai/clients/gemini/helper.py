@@ -3,6 +3,7 @@ import time
 import httpx
 from google.genai import errors
 
+from app.core.config import settings
 from app.core.logging import get_logger
 from app.exceptions.ai import AIProviderUnavailableError
 
@@ -17,7 +18,7 @@ RETRYABLE_EXCEPTIONS = (
 
 
 def with_retry(func):
-    max_attempts = 4
+    max_attempts = settings.ai_provider_max_attempts
 
     for attempt in range(max_attempts):
         try:

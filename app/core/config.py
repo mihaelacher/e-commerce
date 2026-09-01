@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     postgres_user: str = "postgres"
     postgres_password: str = "postgres"
     postgres_db: str = "ecommerce"
+    database_statement_timeout_ms: int = 5000
 
     redis_url: str = "redis://localhost:6379/0"
     celery_broker_url: str | None = None
@@ -33,6 +34,8 @@ class Settings(BaseSettings):
 
     ai_rate_limit_requests: int = 20
     ai_rate_limit_window_seconds: int = 60
+    ai_client_timeout_ms: int = 10_000
+    ai_provider_max_attempts: int = 3
 
     model_config = SettingsConfigDict(
         env_file=".env",

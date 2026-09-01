@@ -1,10 +1,12 @@
 from typing import ClassVar
 
+from app.ai.tools.shemas import GetOrderStatusInput
 from app.repositories.order import OrderRepository
 
 
 class GetOrderStatusTool:
     name: ClassVar[str] = "get_order_status"
+    input_model = GetOrderStatusInput
 
     definition: ClassVar[dict[str, object]] = {
         "name": name,

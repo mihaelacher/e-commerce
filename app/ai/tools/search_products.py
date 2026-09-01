@@ -1,11 +1,13 @@
 from typing import ClassVar
 
 from app.ai.clients.embedding_base import EmbeddingClient
+from app.ai.tools.shemas import SearchProductsInput
 from app.repositories.product import ProductRepository
 
 
 class SearchProductsTool:
     name: ClassVar[str] = "search_products"
+    input_model = SearchProductsInput
 
     definition: ClassVar[dict[str, object]] = {
         "name": name,

@@ -9,6 +9,9 @@ from app.core.config import settings
 engine = create_engine(
     settings.connection_url,
     pool_pre_ping=True,
+    connect_args={
+        "options": f"-c statement_timeout={settings.database_statement_timeout_ms}",
+    },
 )
 
 SessionLocal = sessionmaker(

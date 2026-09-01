@@ -19,6 +19,9 @@ class GeminiClient(LLMClient):
 
         self.client = genai.Client(
             api_key=settings.gemini_api_key,
+            http_options=types.HttpOptions(
+                timeout=settings.ai_client_timeout_ms,
+            ),
         )
 
     def chat(

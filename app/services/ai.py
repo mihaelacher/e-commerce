@@ -1,5 +1,7 @@
 import time
 
+from pydantic import ValidationError
+
 from app.ai.clients.llm_base import LLMClient
 from app.ai.conversation.store import ConversationStore
 from app.core.logging import get_logger
@@ -22,7 +24,6 @@ class AIService:
             tool.name: tool
             for tool in tools
         }
-
 
     def chat(
         self,
@@ -90,8 +91,32 @@ class AIService:
                         f"{response.tool_call.name}"
                     )
 
+                try:
+                    arguments = tool.input_model.model_validate(
+                        response.tool_call.arguments
+                    )
+                except ValidationError as exc:
+                    tool_result = {
+                        "success": False,
+                        "error": {
+                        "type": "validation_error",
+                        "details": exc.errors(
+                            include_url=False,
+                            include_input=False,
+                        ),
+                    },
+                    }
+
+                    response = self.ai_client.chat_with_tool_result(
+                        previous_response=response,
+                        tool_result=tool_result,
+                        tools=tool_definitions,
+                    )
+
+                    continue
+
                 tool_result = tool.execute(
-                    **response.tool_call.arguments
+                    **arguments.model_dump()
                 )
 
                 response = self.ai_client.chat_with_tool_result(
