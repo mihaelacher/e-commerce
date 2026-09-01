@@ -62,6 +62,7 @@ class GeminiClient(LLMClient):
             self._log_completed_call(
                 operation="chat",
                 start_time=start_time,
+                usage_metadata=response.usage_metadata,
             )
 
             return self._to_response(
@@ -126,6 +127,7 @@ class GeminiClient(LLMClient):
             self._log_completed_call(
                 operation="tool_result",
                 start_time=start_time,
+                usage_metadata=response.usage_metadata,
             )
 
             return self._to_response(
@@ -208,6 +210,7 @@ class GeminiClient(LLMClient):
         self,
         operation: str,
         start_time: float,
+        usage_metadata,
     ) -> None:
         logger.info(
             "llm_call_completed",
@@ -218,6 +221,26 @@ class GeminiClient(LLMClient):
                 "duration_ms": round(
                     (perf_counter() - start_time) * 1000,
                     2,
+                ),
+                "prompt_tokens": (
+                    usage_metadata.prompt_token_count
+                    if usage_metadata
+                    else None
+                ),
+                "completion_tokens": (
+                    usage_metadata.candidates_token_count
+                    if usage_metadata
+                    else None
+                ),
+                "thought_tokens": (
+                    usage_metadata.thoughts_token_count
+                    if usage_metadata
+                    else None
+                ),
+                "total_tokens": (
+                    usage_metadata.total_token_count
+                    if usage_metadata
+                    else None
                 ),
             },
         )
