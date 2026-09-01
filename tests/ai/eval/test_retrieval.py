@@ -1,5 +1,4 @@
 import pytest
-
 from deepeval.metrics import ContextualRelevancyMetric
 from deepeval.models import GeminiModel
 from deepeval.test_case import LLMTestCase
