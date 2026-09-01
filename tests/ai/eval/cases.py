@@ -71,3 +71,19 @@ EVAL_CASES = [
         },
     },
 ]
+
+
+RETRIEVAL_CASES = [
+    {
+        "query": "wireless headphones",
+        "expected_products": [
+            "Wireless Headphones",
+        ],
+    },
+    {
+        "query": "laptop stand",
+        "expected_products": [
+            "Laptop Stand",
+        ],
+    },
+]
