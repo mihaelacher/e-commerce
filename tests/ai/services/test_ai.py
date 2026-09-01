@@ -1,4 +1,3 @@
-from pydantic import ValidationError
 import pytest
 
 from app.ai.models import LLMResponse, ToolCall

@@ -15,3 +15,7 @@ class SearchProductsInput(BaseModel):
 
 class GetOrderStatusInput(BaseModel):
     order_id: int = Field(gt=0)    
+
+
+class CancelOrderInput(BaseModel):
+    order_id: int = Field(gt=0)    
