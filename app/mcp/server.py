@@ -1,5 +1,6 @@
 from mcp.server import MCPServer
 
+from app.ai.tools.cancel_order import CancelOrderTool
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_products import SearchProductsTool
 from app.core.database import SessionLocal
@@ -59,6 +60,16 @@ def get_order_status(order_id: int) -> dict:
         )
 
         return tool.execute(order_id=order_id)
+
+
+@mcp.tool()
+def cancel_order(order_id: int) -> dict:
+    with SessionLocal() as db:
+        tool = CancelOrderTool(
+            db=db,
+        )
+
+        return tool.execute(order_id=order_id)        
 
 
 if __name__ == "__main__":

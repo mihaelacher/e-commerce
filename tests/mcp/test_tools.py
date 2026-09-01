@@ -32,6 +32,7 @@ async def test_available_tools() -> None:
         assert "ping" in tool_names
         assert "search_products" in tool_names
         assert "get_order_status" in tool_names
+        assert "cancel_order" in tool_names
 
 
 @pytest.mark.anyio
@@ -117,3 +118,67 @@ async def test_get_order_status() -> None:
     assert order["status"] == "payment_pending"
 
     get_order.assert_called_once_with(1)
+
+
+@pytest.mark.anyio
+async def test_cancel_order() -> None:
+    mocked_order = MagicMock(
+        id=5,
+        status="completed",
+    )
+
+    with patch(
+        "app.ai.tools.cancel_order.cancel_order",
+        return_value=mocked_order,
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "cancel_order",
+                {"order_id": 5},
+            )
+
+    assert result.is_error is False
+
+    response = json.loads(result.content[0].text)
+
+    assert response["success"] is True
+    assert response["order_id"] == 5
+    assert response["status"] == "completed"
+
+
+@pytest.mark.anyio
+async def test_cancel_order_fails_when_order_not_found() -> None:
+    from app.exceptions.checkout import OrderNotFoundError
+
+    with patch(
+        "app.services.order.cancel_order",
+        side_effect=OrderNotFoundError(999),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "cancel_order",
+                {"order_id": 999},
+            )
+
+    assert result.is_error is True
+
+
+@pytest.mark.anyio
+async def test_cancel_order_fails_for_pending_order() -> None:
+    from app.enums.order import OrderStatus
+    from app.exceptions.order import OrderCannotBeCancelledError
+
+    with patch(
+        "app.services.order.cancel_order",
+        side_effect=OrderCannotBeCancelledError(
+            order_id=6,
+            status=OrderStatus.PENDING,
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "cancel_order",
+                {"order_id": 6},
+            )
+
+    assert result.is_error is True
