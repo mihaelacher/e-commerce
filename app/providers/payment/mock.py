@@ -52,8 +52,6 @@ class MockPaymentProvider:
             ),
         )
 
-        self.refunds[idempotency_key] = result
-
         return result
 
     def parse_webhook(

@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import transaction
 from app.enums.order import OrderStatus
+from app.enums.payment_status import PaymentStatus
 from app.exceptions.checkout import OrderNotFoundError
 from app.exceptions.order import (
     OrderCannotBeCancelledError,
@@ -32,6 +33,8 @@ def cancel_order(
     db: Session,
     order_id: int,
 ) -> OrderModel:
+    requires_refund = False
+
     with transaction(db):
         order_repository = OrderRepository(db)
         payment_repository = PaymentRepository(db)
@@ -43,10 +46,16 @@ def cancel_order(
         if order is None:
             raise OrderNotFoundError(order_id)
 
-        if order.status in (OrderStatus.CANCELLED, OrderStatus.CANCELLATION_PENDING):
+        if order.status in (
+            OrderStatus.CANCELLED,
+            OrderStatus.CANCELLATION_PENDING,
+        ):
             return order
 
-        if order.status in (OrderStatus.PENDING, OrderStatus.PAYMENT_PENDING):
+        if order.status in (
+            OrderStatus.PENDING,
+            OrderStatus.PAYMENT_PENDING,
+        ):
             raise OrderCannotBeCancelledError(
                 order_id=order.id,
                 status=order.status,
@@ -56,18 +65,22 @@ def cancel_order(
             order.status = OrderStatus.CANCELLED
 
         elif order.status == OrderStatus.PAID:
-            payment = payment_repository.get_paid_by_order_id_for_update(
-                order.id
+            payment = (
+                payment_repository
+                .get_paid_by_order_id_for_update(order.id)
             )
 
             if payment is None:
                 raise PaidOrderPaymentNotFoundError(order.id)
 
             order.status = OrderStatus.CANCELLATION_PENDING
-            payment = payment_repository.get(order.payment_id)
-        
+            payment.status = PaymentStatus.REFUND_PENDING
+
+            requires_refund = True
+
         db.flush()
 
+    if requires_refund:
         refund_order_payment.delay(order.id)
 
-        return order
+    return order

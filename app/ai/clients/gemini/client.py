@@ -12,6 +12,18 @@ from app.core.logging import get_logger
 
 logger = get_logger(__name__)
 
+SYSTEM_INSTRUCTION = (
+        "You are an assistant for an e-commerce application. "
+        "Use the provided tools to perform supported actions and retrieve "
+        "application data when needed. "
+        "If the user explicitly requests an action and an appropriate tool "
+        "is available, use that tool instead of claiming that you cannot "
+        "perform the action. "
+        "Do not invent products, prices, stock, order information, "
+        "tool results, or application capabilities. "
+        "Answer clearly and concisely."
+    )
+
 
 class GeminiClient(LLMClient):
     def __init__(self) -> None:
@@ -49,10 +61,7 @@ class GeminiClient(LLMClient):
                 model=self.model,
                 contents=contents,
                 config=types.GenerateContentConfig(
-                    system_instruction=(
-                        "You are an assistant for an e-commerce application. "
-                        "Answer clearly and concisely."
-                    ),
+                    system_instruction=SYSTEM_INSTRUCTION,
                     tools=self._build_tools(tools),
                 ),
             )
@@ -112,12 +121,7 @@ class GeminiClient(LLMClient):
                 model=self.model,
                 contents=contents,
                 config=types.GenerateContentConfig(
-                    system_instruction=(
-                        "You are an assistant for an e-commerce application. "
-                        "Use tool results when needed. "
-                        "Do not invent products, prices, stock, "
-                        "order information, or features."
-                    ),
+                    system_instruction=SYSTEM_INSTRUCTION,
                     tools=self._build_tools(tools),
                 ),
             )

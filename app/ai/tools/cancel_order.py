@@ -14,8 +14,9 @@ class CancelOrderTool:
     definition: ClassVar[dict] = {
         "name": name,
         "description": (
-            "Cancel an existing order when explicitly requested "
-            "by the customer."
+            "Cancel an existing customer order. "
+            "Use this tool when the customer explicitly requests "
+            "cancellation of an order."
         ),
         "parameters": {
             "type": "object",
