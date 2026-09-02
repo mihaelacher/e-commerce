@@ -32,9 +32,20 @@ from app.exceptions.handlers import (
     product_not_found_handler,
 )
 from app.exceptions.payment import OrderCannotBePaidError, PaymentNotFoundError
-from app.exceptions.pending_action import PendingActionNotFoundError, UnsupportedPendingActionError
+from app.exceptions.pending_action import (
+    PendingActionNotFoundError,
+    UnsupportedPendingActionError,
+)
 from app.exceptions.product import ProductNotFoundError
-from app.routers import ai, analytics, checkout, order, payment, pending_actions, product
+from app.routers import (
+    ai,
+    analytics,
+    checkout,
+    order,
+    payment,
+    pending_actions,
+    product,
+)
 
 configure_logging()
 setup_error_tracking()

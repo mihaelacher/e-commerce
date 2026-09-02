@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 
 from app.ai.models import PendingAction
 
+
 class PendingActionStore(ABC):
     @abstractmethod
     def save(

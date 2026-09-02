@@ -14,11 +14,11 @@ from app.exceptions.payment import (
     OrderCannotBePaidError,
     PaymentNotFoundError,
 )
-from app.exceptions.product import ProductNotFoundError
 from app.exceptions.pending_action import (
     PendingActionNotFoundError,
     UnsupportedPendingActionError,
 )
+from app.exceptions.product import ProductNotFoundError
 
 __all__ = [
     "AIProviderUnavailableError",
@@ -31,7 +31,7 @@ __all__ = [
     "OrderNotFoundError",
     "PaidOrderPaymentNotFoundError",
     "PaymentNotFoundError",
-    "ProductNotFoundError",
     "PendingActionNotFoundError",
+    "ProductNotFoundError",
     "UnsupportedPendingActionError",
 ]
