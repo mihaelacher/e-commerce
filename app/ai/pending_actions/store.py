@@ -23,4 +23,4 @@ class PendingActionStore(ABC):
         self,
         action_id: str,
     ) -> None:
-        pass  
+        pass

@@ -17,4 +17,4 @@ class AIChatResponse(BaseModel):
 class ProductSearchQuery(BaseModel):
     search_query: str
     min_price: Decimal | None = None
-    max_price: Decimal | None = None    
+    max_price: Decimal | None = None

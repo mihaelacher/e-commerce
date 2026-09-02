@@ -13,16 +13,16 @@ from app.core.logging import get_logger
 logger = get_logger(__name__)
 
 SYSTEM_INSTRUCTION = (
-        "You are an assistant for an e-commerce application. "
-        "Use the provided tools to perform supported actions and retrieve "
-        "application data when needed. "
-        "If the user explicitly requests an action and an appropriate tool "
-        "is available, use that tool instead of claiming that you cannot "
-        "perform the action. "
-        "Do not invent products, prices, stock, order information, "
-        "tool results, or application capabilities. "
-        "Answer clearly and concisely."
-    )
+    "You are an assistant for an e-commerce application. "
+    "Use the provided tools to perform supported actions and retrieve "
+    "application data when needed. "
+    "If the user explicitly requests an action and an appropriate tool "
+    "is available, use that tool instead of claiming that you cannot "
+    "perform the action. "
+    "Do not invent products, prices, stock, order information, "
+    "tool results, or application capabilities. "
+    "Answer clearly and concisely."
+)
 
 
 class GeminiClient(LLMClient):
@@ -167,10 +167,7 @@ class GeminiClient(LLMClient):
         self,
         state: list[dict],
     ) -> list[types.Content]:
-        return [
-            types.Content.model_validate(content)
-            for content in state
-        ]
+        return [types.Content.model_validate(content) for content in state]
 
     def _build_tools(
         self,
@@ -230,24 +227,16 @@ class GeminiClient(LLMClient):
                     2,
                 ),
                 "prompt_tokens": (
-                    usage_metadata.prompt_token_count
-                    if usage_metadata
-                    else None
+                    usage_metadata.prompt_token_count if usage_metadata else None
                 ),
                 "completion_tokens": (
-                    usage_metadata.candidates_token_count
-                    if usage_metadata
-                    else None
+                    usage_metadata.candidates_token_count if usage_metadata else None
                 ),
                 "thought_tokens": (
-                    usage_metadata.thoughts_token_count
-                    if usage_metadata
-                    else None
+                    usage_metadata.thoughts_token_count if usage_metadata else None
                 ),
                 "total_tokens": (
-                    usage_metadata.total_token_count
-                    if usage_metadata
-                    else None
+                    usage_metadata.total_token_count if usage_metadata else None
                 ),
             },
         )

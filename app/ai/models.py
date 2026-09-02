@@ -6,7 +6,7 @@ from typing import Any
 class ToolCall:
     name: str
     arguments: dict[str, Any]
-    
+
 
 @dataclass
 class LLMResponse:
@@ -19,11 +19,11 @@ class LLMResponse:
 @dataclass
 class PendingToolCall:
     name: str
-    arguments: dict    
+    arguments: dict
 
 
 @dataclass
 class PendingAction:
     action_id: str
     name: str
-    arguments: dict[str, Any]    
+    arguments: dict[str, Any]

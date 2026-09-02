@@ -11,8 +11,7 @@ class LLMClient(ABC):
         message: str,
         tools: list[dict] | None = None,
         state: Any | None = None,
-    ) -> LLMResponse:
-        ...
+    ) -> LLMResponse: ...
 
     @abstractmethod
     async def chat_with_tool_result(
@@ -20,19 +19,16 @@ class LLMClient(ABC):
         previous_response: LLMResponse,
         tool_result: Any,
         tools: list[dict] | None = None,
-    ) -> LLMResponse:
-        ...
+    ) -> LLMResponse: ...
 
     @abstractmethod
     def serialize_state(
         self,
         state: Any,
-    ) -> Any:
-        ...
+    ) -> Any: ...
 
     @abstractmethod
     def deserialize_state(
         self,
         state: Any,
-    ) -> Any:
-        ...
+    ) -> Any: ...

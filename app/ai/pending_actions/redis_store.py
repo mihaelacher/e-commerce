@@ -37,9 +37,7 @@ class RedisPendingActionStore(PendingActionStore):
         self,
         action_id: str,
     ) -> PendingAction | None:
-        data = self.redis.get(
-            self._key(action_id)
-        )
+        data = self.redis.get(self._key(action_id))
 
         if data is None:
             return None
@@ -56,12 +54,10 @@ class RedisPendingActionStore(PendingActionStore):
         self,
         action_id: str,
     ) -> None:
-        self.redis.delete(
-            self._key(action_id)
-        )
+        self.redis.delete(self._key(action_id))
 
     def _key(
         self,
         action_id: str,
     ) -> str:
-        return f"mcp:pending_action:{action_id}"        
+        return f"mcp:pending_action:{action_id}"

@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.tools.schemas import CancelOrderInput
 from app.services.order import cancel_order
@@ -30,14 +30,14 @@ class CancelOrderTool:
         },
     }
 
-    def __init__(self, db: Session):
+    def __init__(self, db: AsyncSession):
         self.db = db
 
-    def execute(
+    async def execute(
         self,
         order_id: int,
     ) -> dict:
-        order = cancel_order(
+        order = await cancel_order(
             db=self.db,
             order_id=order_id,
         )

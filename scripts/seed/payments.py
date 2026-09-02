@@ -7,7 +7,7 @@ from app.enums.order import OrderStatus
 from app.enums.payment_provider import PaymentProvider
 from app.enums.payment_status import PaymentStatus
 from app.models.order import OrderModel
-from app.repositories.payment import PaymentRepository
+from app.repositories.payment.sync_payment import PaymentRepository
 
 
 def seed_payments() -> None:
@@ -16,14 +16,10 @@ def seed_payments() -> None:
     try:
         payment_repository = PaymentRepository(db)
 
-        orders = db.scalars(
-            select(OrderModel)
-        ).all()
+        orders = db.scalars(select(OrderModel)).all()
 
         if not orders:
-            raise RuntimeError(
-                "No orders found. Seed orders first."
-            )
+            raise RuntimeError("No orders found. Seed orders first.")
 
         payment_count = 0
 
@@ -54,9 +50,7 @@ def seed_payments() -> None:
                 payment.status = status
 
                 if status == PaymentStatus.PAID:
-                    payment.transaction_id = (
-                        f"mock_tx_{uuid.uuid4().hex}"
-                    )
+                    payment.transaction_id = f"mock_tx_{uuid.uuid4().hex}"
 
                 payment_count += 1
 

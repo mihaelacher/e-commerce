@@ -3,7 +3,6 @@ from typing import Annotated
 from fastapi import Depends
 from redis import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
 from app.ai.clients.embedding_base import EmbeddingClient
 from app.ai.clients.gemini.client import GeminiClient
@@ -14,10 +13,12 @@ from app.ai.conversation.store import ConversationStore
 from app.ai.tools.cancel_order import CancelOrderTool
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_products import SearchProductsTool
-from app.core.database import get_async_db, get_db
+from app.core.database import get_async_db
 from app.core.dependencies.core import get_redis
-from app.repositories.order import OrderRepository
-from app.repositories.product.sync import ProductRepository
+from app.repositories.order.async_order import AsyncOrderRepository
+from app.repositories.product.async_product import (
+    AsyncProductRepository as ProductRepository,
+)
 from app.services.ai import AIService
 
 
@@ -40,15 +41,15 @@ def get_search_products_tool(
 
 
 def get_order_status_tool(
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_async_db)],
 ) -> GetOrderStatusTool:
     return GetOrderStatusTool(
-        order_repository=OrderRepository(db),
+        order_repository=AsyncOrderRepository(db),
     )
 
 
 def get_cancel_order_tool(
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_async_db)],
 ) -> CancelOrderTool:
     return CancelOrderTool(
         db=db,

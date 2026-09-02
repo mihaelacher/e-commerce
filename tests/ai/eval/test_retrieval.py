@@ -7,12 +7,12 @@ from app.ai.clients.gemini.embedding import GeminiEmbeddingClient
 from app.ai.tools.search_products import SearchProductsTool
 from app.core.config import settings
 from app.core.database import SessionLocal
-from app.repositories.product.sync import ProductRepository
+from app.repositories.product.sync_product import ProductRepository
 from tests.ai.eval.cases import RETRIEVAL_CASES
 
 
 # TODO: deeleval library added
-# not tested yet, since daily rate exceeded for Gemini API, 
+# not tested yet, since daily rate exceeded for Gemini API,
 # need to wait for next day to test it
 @pytest.mark.eval
 @pytest.mark.parametrize("case", RETRIEVAL_CASES)

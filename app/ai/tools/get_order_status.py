@@ -1,7 +1,7 @@
 from typing import ClassVar
 
 from app.ai.tools.schemas import GetOrderStatusInput
-from app.repositories.order import OrderRepository
+from app.repositories.order.async_order import AsyncOrderRepository as OrderRepository
 
 
 class GetOrderStatusTool:
@@ -30,8 +30,8 @@ class GetOrderStatusTool:
     ):
         self.order_repository = order_repository
 
-    def execute(self, order_id: int) -> dict:
-        order = self.order_repository.get(order_id)
+    async def execute(self, order_id: int) -> dict:
+        order = await self.order_repository.get(order_id)
 
         if not order:
             return {

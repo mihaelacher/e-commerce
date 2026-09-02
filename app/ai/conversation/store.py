@@ -6,35 +6,30 @@ from app.ai.models import PendingToolCall
 
 class ConversationStore(ABC):
     @abstractmethod
-    def get(self, conversation_id: str) -> Any | None:
-        ...
+    def get(self, conversation_id: str) -> Any | None: ...
 
     @abstractmethod
     def save(
         self,
         conversation_id: str,
         state: Any,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @abstractmethod
     def get_pending_tool_call(
         self,
         conversation_id: str,
-    ) -> PendingToolCall | None:
-        ...
+    ) -> PendingToolCall | None: ...
 
     @abstractmethod
     def save_pending_tool_call(
         self,
         conversation_id: str,
         tool_call: PendingToolCall,
-    ) -> None:
-        ...
+    ) -> None: ...
 
     @abstractmethod
     def clear_pending_tool_call(
         self,
         conversation_id: str,
-    ) -> None:
-        ...
+    ) -> None: ...

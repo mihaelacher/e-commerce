@@ -21,7 +21,6 @@ def create_order(client: TestClient, *, email: str = "customer@example.com") -> 
     return response.json()
 
 
-
 @pytest.mark.anyio
 async def test_available_tools() -> None:
     async with Client(mcp) as client:
@@ -53,7 +52,7 @@ async def test_search_products() -> None:
     mocked_product.price = Decimal("49.99")
     mocked_product.stock = 5
     mocked_product.description = "Adjustable stand"
-    
+
     mocked_products = [
         (mocked_product, 0.2),
     ]
@@ -77,10 +76,7 @@ async def test_search_products() -> None:
     assert result.is_error is False
     assert result.structured_content is not None
 
-    products = [
-        json.loads(item.text)
-        for item in result.content
-    ]
+    products = [json.loads(item.text) for item in result.content]
 
     assert len(products) == 1
 
@@ -102,7 +98,7 @@ async def test_get_order_status() -> None:
 
     with patch(
         "app.mcp.server.OrderRepository.get",
-        return_value=mocked_order,
+        new=AsyncMock(return_value=mocked_order),
     ) as get_order:
         async with Client(mcp) as client:
             result = await client.call_tool(
@@ -170,4 +166,4 @@ async def test_request_order_cancellation_does_not_cancel_order() -> None:
             )
 
     assert result.is_error is False
-    execute.assert_not_called()    
+    execute.assert_not_called()

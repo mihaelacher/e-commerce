@@ -12,9 +12,9 @@ class BaseProductRepository(BaseRepository[ProductModel]):
         max_price: float | None = None,
         limit: int = 5,
     ):
-        distance = ProductModel.embedding.cosine_distance(
-            query_embedding
-        ).label("distance")
+        distance = ProductModel.embedding.cosine_distance(query_embedding).label(
+            "distance"
+        )
 
         stmt = select(
             ProductModel,
@@ -22,13 +22,9 @@ class BaseProductRepository(BaseRepository[ProductModel]):
         )
 
         if min_price is not None:
-            stmt = stmt.where(
-                ProductModel.price >= min_price
-            )
+            stmt = stmt.where(ProductModel.price >= min_price)
 
         if max_price is not None:
-            stmt = stmt.where(
-                ProductModel.price <= max_price
-            )
+            stmt = stmt.where(ProductModel.price <= max_price)
 
         return stmt.order_by(distance).limit(limit)

@@ -2,9 +2,9 @@ from app.core.database import SessionLocal, transaction
 from app.core.dependencies.payment import get_payment_provider
 from app.enums.order import OrderStatus
 from app.enums.payment_status import PaymentStatus
-from app.repositories.order import OrderRepository
-from app.repositories.payment import PaymentRepository
-from app.repositories.product.sync import ProductRepository
+from app.repositories.order.sync_order import OrderRepository
+from app.repositories.payment.sync_payment import PaymentRepository
+from app.repositories.product.sync_product import ProductRepository
 from app.tasks.celery import celery_app
 
 
@@ -23,9 +23,7 @@ def refund_order_payment(
         order_repository = OrderRepository(db)
         product_repository = ProductRepository(db)
 
-        payment = payment_repository.get_refund_pending_by_order_id(
-            order_id
-        )
+        payment = payment_repository.get_refund_pending_by_order_id(order_id)
 
         if payment is None:
             return
@@ -40,13 +38,9 @@ def refund_order_payment(
 
         if not result.success:
             with transaction(db):
-                order = order_repository.get_for_update(
-                    order_id
-                )
+                order = order_repository.get_for_update(order_id)
 
-                payment = payment_repository.get_for_update(
-                    payment.id
-                )
+                payment = payment_repository.get_for_update(payment.id)
 
                 if order is None or payment is None:
                     raise RuntimeError(
@@ -61,13 +55,9 @@ def refund_order_payment(
             return
 
         with transaction(db):
-            order = order_repository.get_with_items_for_update(
-                order_id
-            )
+            order = order_repository.get_with_items_for_update(order_id)
 
-            payment = payment_repository.get_for_update(
-                payment.id
-            )
+            payment = payment_repository.get_for_update(payment.id)
 
             if order is None or payment is None:
                 raise RuntimeError(
@@ -78,9 +68,7 @@ def refund_order_payment(
                 return
 
             for item in order.items:
-                product = product_repository.get_with_lock(
-                    item.product_id
-                )
+                product = product_repository.get_with_lock(item.product_id)
 
                 product.stock += item.quantity
 

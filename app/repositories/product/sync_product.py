@@ -13,11 +13,7 @@ class ProductRepository(BaseProductRepository):
         self,
         product_id: int,
     ) -> ProductModel | None:
-        stmt = (
-            select(self.model)
-            .where(self.model.id == product_id)
-            .with_for_update()
-        )
+        stmt = select(self.model).where(self.model.id == product_id).with_for_update()
 
         return self.db.scalar(stmt)
 
@@ -25,17 +21,11 @@ class ProductRepository(BaseProductRepository):
         product = ProductModel(**data)
 
         return self.add(product)
-    
 
     def get_available_products(self, limit: int = 20) -> list[ProductModel]:
-        stmt = (
-            select(ProductModel)
-            .where(ProductModel.stock > 0)
-            .limit(limit)
-        )
+        stmt = select(ProductModel).where(ProductModel.stock > 0).limit(limit)
 
-        return list(self.db.scalars(stmt).all())        
-
+        return list(self.db.scalars(stmt).all())
 
     def search_available(
         self,
@@ -58,19 +48,13 @@ class ProductRepository(BaseProductRepository):
 
         return list(self.db.scalars(stmt).all())
 
-
     def get_without_embedding(
         self,
         limit: int = 100,
     ) -> list[ProductModel]:
-        stmt = (
-            select(ProductModel)
-            .where(ProductModel.embedding.is_(None))
-            .limit(limit)
-        )
-        
-        return list(self.db.scalars(stmt).all())        
+        stmt = select(ProductModel).where(ProductModel.embedding.is_(None)).limit(limit)
 
+        return list(self.db.scalars(stmt).all())
 
     def semantic_search(
         self,

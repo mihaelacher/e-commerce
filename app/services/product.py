@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.core.database import transaction
 from app.exceptions import ProductNotFoundError
 from app.models.product import ProductModel
-from app.repositories.product.sync import ProductRepository
+from app.repositories.product.sync_product import ProductRepository
 from app.schemas.product import ProductCreate, ProductUpdate
 from app.tasks.embeddings import generate_product_embedding_task
 
@@ -64,8 +64,7 @@ def update_product(
         )
 
         searchable_fields_changed = any(
-            field in product.model_fields_set
-            for field in ("name", "description")
+            field in product.model_fields_set for field in ("name", "description")
         )
         if searchable_fields_changed:
             updated_product.embedding = None

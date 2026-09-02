@@ -6,11 +6,13 @@ from app.ai.models import PendingAction
 from app.ai.pending_actions.redis_store import RedisPendingActionStore
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_products import SearchProductsTool
-from app.core.database import AsyncSessionLocal, SessionLocal
+from app.core.database import AsyncSessionLocal
 from app.core.dependencies.ai import get_embedding_client
 from app.core.dependencies.core import get_redis
-from app.repositories.order import OrderRepository
-from app.repositories.product.sync import ProductRepository
+from app.repositories.order.async_order import AsyncOrderRepository as OrderRepository
+from app.repositories.product.async_product import (
+    AsyncProductRepository as ProductRepository,
+)
 
 mcp = MCPServer("ecommerce")
 
@@ -60,13 +62,13 @@ async def search_products(
 
 
 @mcp.tool()
-def get_order_status(order_id: int) -> dict:
-    with SessionLocal() as db:
+async def get_order_status(order_id: int) -> dict:
+    async with AsyncSessionLocal() as db:
         tool = GetOrderStatusTool(
             order_repository=OrderRepository(db=db),
         )
 
-        return tool.execute(order_id=order_id)
+        return await tool.execute(order_id=order_id)
 
 
 @mcp.tool()
@@ -96,7 +98,7 @@ def request_order_cancellation(
         "arguments": {
             "order_id": order_id,
         },
-    }       
+    }
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from sqlalchemy import select
 from app.core.database import SessionLocal, transaction
 from app.enums.order import OrderStatus
 from app.models.product import ProductModel
-from app.repositories.order import OrderRepository
+from app.repositories.order.sync_order import OrderRepository
 from app.repositories.order_item import OrderItemRepository
 from scripts.seed.product_data import PRODUCTS
 
@@ -18,15 +18,9 @@ DAYS_OF_HISTORY = 30
 def get_product_weights(
     products: list[ProductModel],
 ) -> list[int]:
-    weights_by_name = {
-        product["name"]: product["sales_weight"]
-        for product in PRODUCTS
-    }
+    weights_by_name = {product["name"]: product["sales_weight"] for product in PRODUCTS}
 
-    return [
-        weights_by_name[product.name]
-        for product in products
-    ]
+    return [weights_by_name[product.name] for product in products]
 
 
 def choose_products(
@@ -81,15 +75,9 @@ def random_order_status() -> OrderStatus:
 def calculate_order_totals(
     subtotal: Decimal,
 ) -> tuple[Decimal, Decimal, Decimal, Decimal]:
-    tax = (subtotal * Decimal("0.20")).quantize(
-        Decimal("0.01")
-    )
+    tax = (subtotal * Decimal("0.20")).quantize(Decimal("0.01"))
 
-    shipping = (
-        Decimal("0.00")
-        if subtotal >= Decimal("100.00")
-        else Decimal("9.99")
-    )
+    shipping = Decimal("0.00") if subtotal >= Decimal("100.00") else Decimal("9.99")
 
     discount = (
         (subtotal * Decimal("0.10")).quantize(Decimal("0.01"))
@@ -111,14 +99,10 @@ def seed_orders(
         order_repository = OrderRepository(db)
         order_item_repository = OrderItemRepository(db)
 
-        products = db.scalars(
-            select(ProductModel)
-        ).all()
+        products = db.scalars(select(ProductModel)).all()
 
         if not products:
-            raise RuntimeError(
-                "No products found. Seed products first."
-            )
+            raise RuntimeError("No products found. Seed products first.")
 
         with transaction(db):
             for order_number in range(1, number_of_orders + 1):
@@ -149,9 +133,7 @@ def seed_orders(
 
                     subtotal += item.total_price
 
-                tax, shipping, discount, total = (
-                    calculate_order_totals(subtotal)
-                )
+                tax, shipping, discount, total = calculate_order_totals(subtotal)
 
                 order.subtotal = subtotal
                 order.tax = tax

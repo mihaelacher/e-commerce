@@ -40,7 +40,7 @@ def test_create_payment_success(db):
 
 def test_create_payment_is_idempotent(db):
     order = create_order(db)
-    
+
     provider = MockPaymentProvider(should_succeed=True)
 
     first_payment = create_payment(
@@ -84,7 +84,7 @@ def test_same_idempotency_key_can_be_used_for_different_orders(db):
 
 
 def create_order(db: Session) -> OrderModel:
-    order = OrderModel(email="test@example.com" )
+    order = OrderModel(email="test@example.com")
     order.total = Decimal("100.00")
     order.status = OrderStatus.PAYMENT_PENDING
 
@@ -92,15 +92,12 @@ def create_order(db: Session) -> OrderModel:
     db.commit()
     db.refresh(order)
 
-    return order            
+    return order
 
-def test_process_payment(
-    db,
-    monkeypatch,
-    testing_session_factory
-):
+
+def test_process_payment(db, monkeypatch, testing_session_factory):
     order = create_order(db)
-    
+
     payment = PaymentModel(
         order_id=order.id,
         amount=Decimal("100.00"),
@@ -145,8 +142,8 @@ def test_process_payment_payment_not_found(monkeypatch, db):
         "app.tasks.payment.SessionLocal",
         lambda: db,
     )
-     
-    process_payment(999999)   
+
+    process_payment(999999)
 
 
 def test_process_payment_skips_non_pending_payment(
@@ -182,14 +179,10 @@ def test_process_payment_skips_non_pending_payment(
         lambda: db,
     )
 
-    process_payment(payment.id)  
+    process_payment(payment.id)
 
 
-def test_process_payment_failure(
-    db,
-    monkeypatch,
-    testing_session_factory
-):
+def test_process_payment_failure(db, monkeypatch, testing_session_factory):
     order = create_order(db)
 
     payment = PaymentModel(
@@ -217,9 +210,9 @@ def test_process_payment_failure(
     )
 
     monkeypatch.setattr(
-          "app.tasks.payment.SessionLocal",
-          testing_session_factory,
-      )
+        "app.tasks.payment.SessionLocal",
+        testing_session_factory,
+    )
 
     process_payment(payment.id)
 
@@ -274,6 +267,7 @@ def test_process_payment_retries_and_releases_claim(
     assert process_payment.autoretry_for == (Exception,)
     assert process_payment.max_retries == 3
 
+
 def test_payment_webhook_success(db, monkeypatch):
     order = create_order(db)
 
@@ -310,7 +304,7 @@ def test_payment_webhook_success(db, monkeypatch):
     db.refresh(order)
 
     assert payment.status == PaymentStatus.PAID
-    assert order.status == OrderStatus.PAID   
+    assert order.status == OrderStatus.PAID
     assert confirmation_calls == [
         {
             "recipient": "test@example.com",
@@ -340,7 +334,9 @@ def test_payment_webhook_failure(db, monkeypatch):
 
     monkeypatch.setattr(
         "app.services.payment.send_order_confirmation_task.delay",
-        lambda **kwargs: pytest.fail("Confirmation must not be sent for failed payment"),
+        lambda **kwargs: pytest.fail(
+            "Confirmation must not be sent for failed payment"
+        ),
     )
 
     payment = handle_payment_webhook(
@@ -408,6 +404,7 @@ def test_failed_payment_releases_stock_and_allows_checkout_again(db):
     assert product.stock == 1
     assert order.status == OrderStatus.PAYMENT_PENDING
 
+
 def test_payment_webhook_ignores_processed_payment(db):
     order = create_order(db)
 
@@ -435,7 +432,7 @@ def test_payment_webhook_ignores_processed_payment(db):
 
     db.refresh(order)
 
-    assert order.status == OrderStatus.PAYMENT_PENDING    
+    assert order.status == OrderStatus.PAYMENT_PENDING
 
 
 def test_failed_payment_can_be_retried(db):
@@ -464,11 +461,11 @@ def test_failed_payment_can_be_retried(db):
     assert retry_payment.id != failed_payment.id
     assert retry_payment.order_id == order.id
     assert retry_payment.status == PaymentStatus.PENDING
-    assert retry_payment.transaction_id is None    
+    assert retry_payment.transaction_id is None
 
     db.refresh(order)
 
-    assert order.status == OrderStatus.PAYMENT_PENDING    
+    assert order.status == OrderStatus.PAYMENT_PENDING
 
     db.refresh(order)
 

@@ -13,10 +13,7 @@ def assert_query(
 ) -> None:
     actual_query = actual_query.lower()
 
-    assert any(
-        term.lower() in actual_query
-        for term in expected_terms
-    )
+    assert any(term.lower() in actual_query for term in expected_terms)
 
 
 def assert_arguments(

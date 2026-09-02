@@ -11,9 +11,9 @@ from app.exceptions.payment import OrderCannotBePaidError, PaymentNotFoundError
 from app.models.order import OrderModel
 from app.models.payment import PaymentModel
 from app.providers.payment.base import PaymentGateway
-from app.repositories.order import OrderRepository
-from app.repositories.payment import PaymentRepository
-from app.repositories.product.sync import ProductRepository
+from app.repositories.order.sync_order import OrderRepository
+from app.repositories.payment.sync_payment import PaymentRepository
+from app.repositories.product.sync_product import ProductRepository
 from app.tasks.order_confirmation import (
     notify_order_created_task,
     send_order_confirmation_task,
@@ -119,9 +119,7 @@ def handle_payment_webhook(
         )
 
         if payment is None:
-            raise PaymentNotFoundError(
-                result.transaction_id
-            )
+            raise PaymentNotFoundError(result.transaction_id)
 
         if payment.status != PaymentStatus.PENDING:
             logger.info(

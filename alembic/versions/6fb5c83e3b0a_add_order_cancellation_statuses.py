@@ -17,14 +17,8 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.execute(
-        "ALTER TYPE order_status "
-        "ADD VALUE IF NOT EXISTS 'CANCELLATION_PENDING'"
-    )
-    op.execute(
-        "ALTER TYPE paymentstatus "
-        "ADD VALUE IF NOT EXISTS 'REFUND_PENDING'"
-    )
+    op.execute("ALTER TYPE order_status ADD VALUE IF NOT EXISTS 'CANCELLATION_PENDING'")
+    op.execute("ALTER TYPE paymentstatus ADD VALUE IF NOT EXISTS 'REFUND_PENDING'")
 
 
 def downgrade() -> None:

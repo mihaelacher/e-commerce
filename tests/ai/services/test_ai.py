@@ -2,7 +2,7 @@ from typing import ClassVar
 
 import pytest
 
-from app.ai.models import LLMResponse, ToolCall
+from app.ai.models import LLMResponse, PendingToolCall, ToolCall
 from app.ai.tools.schemas import GetOrderStatusInput, SearchProductsInput
 from app.services.ai import AIService
 
@@ -71,7 +71,7 @@ class FakeSearchProductsTool:
         self.was_called = False
         self.arguments = None
 
-    def execute(
+    async def execute(
         self,
         query: str,
         min_price: float | None = None,
@@ -108,7 +108,7 @@ class FakeGetOrderStatusTool:
         self.was_called = False
         self.order_id = None
 
-    def execute(self, order_id: int):
+    async def execute(self, order_id: int):
         self.was_called = True
         self.order_id = order_id
 
@@ -123,7 +123,7 @@ class SingleToolAIClient:
         self.tool_result = None
         self.received_state = None
 
-    def chat(
+    async def chat(
         self,
         message: str,
         tools=None,
@@ -142,7 +142,7 @@ class SingleToolAIClient:
             state=["tool-call-state"],
         )
 
-    def chat_with_tool_result(
+    async def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
         tool_result,
@@ -163,7 +163,7 @@ class SingleToolAIClient:
 
 
 class EmptyResultAIClient(SingleToolAIClient):
-    def chat_with_tool_result(
+    async def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
         tool_result,
@@ -181,7 +181,7 @@ class MultiToolAIClient:
     def __init__(self):
         self.calls = 0
 
-    def chat(
+    async def chat(
         self,
         message: str,
         tools=None,
@@ -198,7 +198,7 @@ class MultiToolAIClient:
             state=["search-state"],
         )
 
-    def chat_with_tool_result(
+    async def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
         tool_result,
@@ -218,10 +218,7 @@ class MultiToolAIClient:
             )
 
         return LLMResponse(
-            content=(
-                "I found matching headphones and "
-                "order 42 is processing."
-            ),
+            content=("I found matching headphones and order 42 is processing."),
             state=["final-state"],
         )
 
@@ -233,7 +230,7 @@ class MultiToolAIClient:
 
 
 class UnknownToolAIClient:
-    def chat(
+    async def chat(
         self,
         message: str,
         tools=None,
@@ -255,7 +252,7 @@ class UnknownToolAIClient:
 
 
 class EndlessToolAIClient:
-    def chat(
+    async def chat(
         self,
         message: str,
         tools=None,
@@ -271,7 +268,7 @@ class EndlessToolAIClient:
             state=["state"],
         )
 
-    def chat_with_tool_result(
+    async def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
         tool_result,
@@ -291,25 +288,21 @@ class EndlessToolAIClient:
         return state
 
     def deserialize_state(self, state):
-        return state        
+        return state
 
 
-class FailingSearchProductsTool(
-        FakeSearchProductsTool
+class FailingSearchProductsTool(FakeSearchProductsTool):
+    async def execute(
+        self,
+        query: str,
+        min_price: float | None = None,
+        max_price: float | None = None,
     ):
-        def execute(
-            self,
-            query: str,
-            min_price: float | None = None,
-            max_price: float | None = None,
-        ):
-            raise RuntimeError(
-                "Product search failed"
-            )        
+        raise RuntimeError("Product search failed")
 
 
 class InvalidToolArgumentsAIClient:
-    def chat(
+    async def chat(
         self,
         message: str,
         tools=None,
@@ -325,7 +318,7 @@ class InvalidToolArgumentsAIClient:
             state=["tool-call-state"],
         )
 
-    def chat_with_tool_result(
+    async def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
         tool_result,
@@ -348,7 +341,7 @@ class RecoveringAIClient:
         self.tool_result = None
         self.calls = 0
 
-    def chat(
+    async def chat(
         self,
         message: str,
         tools=None,
@@ -364,7 +357,7 @@ class RecoveringAIClient:
             state=["invalid-tool-state"],
         )
 
-    def chat_with_tool_result(
+    async def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
         tool_result,
@@ -393,9 +386,7 @@ class RecoveringAIClient:
         return state
 
     def deserialize_state(self, state):
-        return state    
-
-from app.ai.models import PendingToolCall
+        return state
 
 
 class ConfirmableTool:
@@ -421,7 +412,7 @@ class ConfirmableTool:
         self.was_called = False
         self.received_order_id = None
 
-    def execute(
+    async def execute(
         self,
         order_id: int,
     ):
@@ -434,39 +425,8 @@ class ConfirmableTool:
         }
 
 
-def test_ai_service_passes_empty_tool_result_to_llm():
-    ai_client = EmptyResultAIClient()
-    conversation_store = FakeConversationStore()
-
-    search_tool = FakeSearchProductsTool(
-        result=[],
-    )
-
-    service = AIService(
-        ai_client=ai_client,
-        conversation_store=conversation_store,
-        tools=[search_tool],
-    )
-
-    answer = service.chat(
-        message="Find headphones",
-        conversation_id="conversation-1",
-    )
-
-    assert search_tool.was_called
-    assert ai_client.tool_result == []
-
-    assert conversation_store.saved_state == [
-        "final-state"
-    ]
-
-    assert answer == (
-        "I couldn't find any matching products."
-    )
-
-
 class ConfirmableToolAIClient:
-    def chat(
+    async def chat(
         self,
         message,
         tools=None,
@@ -480,7 +440,7 @@ class ConfirmableToolAIClient:
             state=["tool-call-state"],
         )
 
-    def chat_with_tool_result(
+    async def chat_with_tool_result(
         self,
         previous_response,
         tool_result,
@@ -497,10 +457,39 @@ class ConfirmableToolAIClient:
         return state
 
     def deserialize_state(self, state):
-        return state
+        return state    
 
 
-def test_ai_service_executes_multiple_tools():
+@pytest.mark.anyio
+async def test_ai_service_passes_empty_tool_result_to_llm():
+    ai_client = EmptyResultAIClient()
+    conversation_store = FakeConversationStore()
+
+    search_tool = FakeSearchProductsTool(
+        result=[],
+    )
+
+    service = AIService(
+        ai_client=ai_client,
+        conversation_store=conversation_store,
+        tools=[search_tool],
+    )
+
+    answer = await service.chat(
+        message="Find headphones",
+        conversation_id="conversation-1",
+    )
+
+    assert search_tool.was_called
+    assert ai_client.tool_result == []
+
+    assert conversation_store.saved_state == ["final-state"]
+
+    assert answer == ("I couldn't find any matching products.")
+
+
+@pytest.mark.anyio
+async def test_ai_service_executes_multiple_tools():
     ai_client = MultiToolAIClient()
     conversation_store = FakeConversationStore()
 
@@ -516,11 +505,8 @@ def test_ai_service_executes_multiple_tools():
         ],
     )
 
-    answer = service.chat(
-        message=(
-            "Find headphones under 100 EUR "
-            "and tell me the status of order 42"
-        ),
+    answer = await service.chat(
+        message=("Find headphones under 100 EUR and tell me the status of order 42"),
         conversation_id="conversation-1",
     )
 
@@ -535,20 +521,14 @@ def test_ai_service_executes_multiple_tools():
     assert order_tool.was_called
     assert order_tool.order_id == 42
 
-    assert conversation_store.saved_state == [
-        "final-state"
-    ]
+    assert conversation_store.saved_state == ["final-state"]
 
-    assert answer == (
-        "I found matching headphones and "
-        "order 42 is processing."
-    )
+    assert answer == ("I found matching headphones and order 42 is processing.")
 
 
-def test_ai_service_loads_existing_conversation_state():
-    stored_state = [
-        "previous-conversation-state"
-    ]
+@pytest.mark.anyio
+async def test_ai_service_loads_existing_conversation_state():
+    stored_state = ["previous-conversation-state"]
 
     ai_client = SingleToolAIClient()
 
@@ -564,15 +544,16 @@ def test_ai_service_loads_existing_conversation_state():
         tools=[search_tool],
     )
 
-    service.chat(
+    await service.chat(
         message="42",
         conversation_id="conversation-1",
     )
 
-    assert ai_client.received_state == stored_state            
+    assert ai_client.received_state == stored_state
 
 
-def test_ai_service_raises_for_unknown_tool():
+@pytest.mark.anyio
+async def test_ai_service_raises_for_unknown_tool():
     ai_client = UnknownToolAIClient()
     conversation_store = FakeConversationStore()
 
@@ -588,13 +569,14 @@ def test_ai_service_raises_for_unknown_tool():
         ValueError,
         match="Unknown tool: non_existing_tool",
     ):
-        service.chat(
+        await service.chat(
             message="Do something",
-            conversation_id="conversation-1",    
+            conversation_id="conversation-1",
         )
 
 
-def test_ai_service_stops_after_max_agent_steps():
+@pytest.mark.anyio
+async def test_ai_service_stops_after_max_agent_steps():
     ai_client = EndlessToolAIClient()
     conversation_store = FakeConversationStore()
 
@@ -610,13 +592,14 @@ def test_ai_service_stops_after_max_agent_steps():
         RuntimeError,
         match="Maximum number of agent steps exceeded",
     ):
-        service.chat(
+        await service.chat(
             message="Keep searching",
             conversation_id="conversation-1",
-        )        
+        )
 
 
-def test_ai_service_propagates_tool_exception():
+@pytest.mark.anyio
+async def test_ai_service_propagates_tool_exception():
     ai_client = SingleToolAIClient()
     conversation_store = FakeConversationStore()
 
@@ -632,15 +615,16 @@ def test_ai_service_propagates_tool_exception():
         RuntimeError,
         match="Product search failed",
     ):
-        service.chat(
+        await service.chat(
             message="Find headphones",
             conversation_id="conversation-1",
         )
 
-    assert conversation_store.saved_state is None        
+    assert conversation_store.saved_state is None
 
 
-def test_ai_service_does_not_execute_tool_with_invalid_arguments():
+@pytest.mark.anyio
+async def test_ai_service_does_not_execute_tool_with_invalid_arguments():
     ai_client = InvalidToolArgumentsAIClient()
     conversation_store = FakeConversationStore()
     order_tool = FakeGetOrderStatusTool()
@@ -651,7 +635,7 @@ def test_ai_service_does_not_execute_tool_with_invalid_arguments():
         tools=[order_tool],
     )
 
-    answer = service.chat(
+    answer = await service.chat(
         message="Check order",
         conversation_id="conversation-1",
     )
@@ -660,12 +644,11 @@ def test_ai_service_does_not_execute_tool_with_invalid_arguments():
 
     assert answer == "The order ID is invalid."
 
-    assert conversation_store.saved_state == [
-        "final-state"
-    ]
+    assert conversation_store.saved_state == ["final-state"]
 
 
-def test_ai_service_recovers_from_invalid_tool_arguments():
+@pytest.mark.anyio
+async def test_ai_service_recovers_from_invalid_tool_arguments():
     ai_client = RecoveringAIClient()
     conversation_store = FakeConversationStore()
     order_tool = FakeGetOrderStatusTool()
@@ -676,7 +659,7 @@ def test_ai_service_recovers_from_invalid_tool_arguments():
         tools=[order_tool],
     )
 
-    answer = service.chat(
+    answer = await service.chat(
         message="Check my order",
         conversation_id="conversation-1",
     )
@@ -686,12 +669,11 @@ def test_ai_service_recovers_from_invalid_tool_arguments():
 
     assert answer == "Order 42 is processing."
 
-    assert conversation_store.saved_state == [
-        "final-state"
-    ]    
+    assert conversation_store.saved_state == ["final-state"]
 
 
-def test_ai_service_does_not_execute_tool_without_confirmation():
+@pytest.mark.anyio
+async def test_ai_service_does_not_execute_tool_without_confirmation():
     ai_client = ConfirmableToolAIClient()
     conversation_store = FakeConversationStore()
     tool = ConfirmableTool()
@@ -702,7 +684,7 @@ def test_ai_service_does_not_execute_tool_without_confirmation():
         tools=[tool],
     )
 
-    answer = service.chat(
+    answer = await service.chat(
         message="Cancel order 42",
         conversation_id="conversation-1",
     )
@@ -714,14 +696,13 @@ def test_ai_service_does_not_execute_tool_without_confirmation():
         arguments={"order_id": 42},
     )
 
-    assert conversation_store.saved_state == [
-        "tool-call-state"
-    ]
+    assert conversation_store.saved_state == ["tool-call-state"]
 
     assert "Please confirm" in answer
 
 
-def test_ai_service_executes_pending_tool_when_confirmed():
+@pytest.mark.anyio
+async def test_ai_service_executes_pending_tool_when_confirmed():
     ai_client = ConfirmableToolAIClient()
 
     conversation_store = FakeConversationStore(
@@ -741,7 +722,7 @@ def test_ai_service_executes_pending_tool_when_confirmed():
         tools=[tool],
     )
 
-    answer = service.chat(
+    answer = await service.chat(
         message="",
         conversation_id="conversation-1",
         confirm_action=True,
@@ -752,14 +733,13 @@ def test_ai_service_executes_pending_tool_when_confirmed():
 
     assert conversation_store.pending_tool_call is None
 
-    assert conversation_store.saved_state == [
-        "final-state"
-    ]
+    assert conversation_store.saved_state == ["final-state"]
 
     assert answer == "Action handled."
 
 
-def test_ai_service_does_not_execute_pending_tool_when_rejected():
+@pytest.mark.anyio
+async def test_ai_service_does_not_execute_pending_tool_when_rejected():
     ai_client = ConfirmableToolAIClient()
 
     conversation_store = FakeConversationStore(
@@ -779,7 +759,7 @@ def test_ai_service_does_not_execute_pending_tool_when_rejected():
         tools=[tool],
     )
 
-    service.chat(
+    await service.chat(
         message="",
         conversation_id="conversation-1",
         confirm_action=False,
@@ -788,6 +768,4 @@ def test_ai_service_does_not_execute_pending_tool_when_rejected():
     assert tool.was_called is False
     assert conversation_store.pending_tool_call is None
 
-    assert conversation_store.saved_state == [
-        "final-state"
-    ]                
+    assert conversation_store.saved_state == ["final-state"]

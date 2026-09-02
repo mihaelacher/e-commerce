@@ -16,7 +16,4 @@ def serialize_state(
 def deserialize_state(
     state: list[dict],
 ) -> list[types.Content]:
-    return [
-        types.Content.model_validate(content)
-        for content in state
-    ]
+    return [types.Content.model_validate(content) for content in state]

@@ -16,9 +16,7 @@ class RedisConversationStore(ConversationStore):
         self.ttl_seconds = ttl_seconds
 
     def get(self, conversation_id: str):
-        value = self.redis.get(
-            self._key(conversation_id)
-        )
+        value = self.redis.get(self._key(conversation_id))
 
         if value is None:
             return None
@@ -40,9 +38,7 @@ class RedisConversationStore(ConversationStore):
         self,
         conversation_id: str,
     ) -> PendingToolCall | None:
-        value = self.redis.get(
-            self._pending_tool_key(conversation_id)
-        )
+        value = self.redis.get(self._pending_tool_key(conversation_id))
 
         if value is None:
             return None
@@ -61,10 +57,12 @@ class RedisConversationStore(ConversationStore):
     ) -> None:
         self.redis.set(
             self._pending_tool_key(conversation_id),
-            json.dumps({
-                "name": tool_call.name,
-                "arguments": tool_call.arguments,
-            }),
+            json.dumps(
+                {
+                    "name": tool_call.name,
+                    "arguments": tool_call.arguments,
+                }
+            ),
             ex=self.ttl_seconds,
         )
 
@@ -72,9 +70,7 @@ class RedisConversationStore(ConversationStore):
         self,
         conversation_id: str,
     ) -> None:
-        self.redis.delete(
-            self._pending_tool_key(conversation_id)
-        )
+        self.redis.delete(self._pending_tool_key(conversation_id))
 
     @staticmethod
     def _key(conversation_id: str) -> str:

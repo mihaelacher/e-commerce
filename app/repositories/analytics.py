@@ -48,4 +48,3 @@ class AnalyticsRepository:
             stmt = stmt.where(OrderModel.created_at < to_date)
 
         return self.db.execute(stmt).mappings().all()
-

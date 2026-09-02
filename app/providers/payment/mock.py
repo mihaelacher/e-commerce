@@ -17,19 +17,15 @@ class MockPaymentProvider:
         amount: Decimal,
         idempotency_key: str,
     ) -> PaymentResult:
-        #time.sleep(2)
-        
+        # time.sleep(2)
+
         success = (
             self.should_succeed
             if self.should_succeed is not None
             else random.choice([True, False])
         )
 
-        return PaymentResult(
-            success=success,
-            transaction_id = f"mock_{uuid.uuid4()}"
-        )
-
+        return PaymentResult(success=success, transaction_id=f"mock_{uuid.uuid4()}")
 
     def refund(
         self,
@@ -45,11 +41,7 @@ class MockPaymentProvider:
 
         result = PaymentResult(
             success=success,
-            transaction_id=(
-                f"mock_refund_{uuid.uuid4()}"
-                if success
-                else None
-            ),
+            transaction_id=(f"mock_refund_{uuid.uuid4()}" if success else None),
         )
 
         return result
@@ -69,14 +61,9 @@ class MockPaymentProvider:
             transaction_id=data["transaction_id"],
         )
 
-
     def verify_webhook(
-            self, 
-            data: dict,
-            signature: str,
-        ) -> bool:
-        return (
-            isinstance(data, dict)
-            and "status" in data
-            and "transaction_id" in data
-        )
+        self,
+        data: dict,
+        signature: str,
+    ) -> bool:
+        return isinstance(data, dict) and "status" in data and "transaction_id" in data

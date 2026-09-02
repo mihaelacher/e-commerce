@@ -14,10 +14,7 @@ class BaseRepository[ModelType: Base]:
         self.db = db
 
     def get(self, id: int) -> ModelType | None:
-        stmt = (
-            select(self.model)
-            .where(self.model.id == id)
-        )
+        stmt = select(self.model).where(self.model.id == id)
 
         return self.db.scalar(stmt)
 
@@ -26,11 +23,7 @@ class BaseRepository[ModelType: Base]:
         skip: int = 0,
         limit: int = 100,
     ) -> list[ModelType]:
-        stmt = (
-            select(self.model)
-            .offset(skip)
-            .limit(limit)
-        )
+        stmt = select(self.model).offset(skip).limit(limit)
 
         return list(self.db.scalars(stmt).all())
 

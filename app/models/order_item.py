@@ -15,10 +15,7 @@ class OrderItemModel(Base):
     __tablename__ = "order_items"
 
     __table_args__ = (
-        CheckConstraint(
-            "quantity > 0", 
-            name="ck_order_quantity_positive"
-        ),
+        CheckConstraint("quantity > 0", name="ck_order_quantity_positive"),
         UniqueConstraint(
             "order_id",
             "product_id",

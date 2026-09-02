@@ -11,7 +11,7 @@ from app.core.database import Base
 
 class ProductModel(Base):
     __tablename__ = "products"
-    
+
     __table_args__ = (
         CheckConstraint(
             "price > 0",
@@ -43,7 +43,6 @@ class ProductModel(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-
 
     embedding: Mapped[list[float] | None] = mapped_column(
         VECTOR(768),

@@ -31,9 +31,7 @@ async_engine = create_async_engine(
     pool_pre_ping=True,
     connect_args={
         "server_settings": {
-            "statement_timeout": str(
-                settings.database_statement_timeout_ms
-            ),
+            "statement_timeout": str(settings.database_statement_timeout_ms),
         },
     },
 )
@@ -59,7 +57,7 @@ def get_db() -> Generator[Session, None, None]:
 
 async def get_async_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as db:
-        yield db      
+        yield db
 
 
 @contextmanager

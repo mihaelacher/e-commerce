@@ -14,29 +14,22 @@ class PaymentGateway(Protocol):
         self,
         amount: Decimal,
         idempotency_key: str,
-    ) -> PaymentResult:
-        ...
-
+    ) -> PaymentResult: ...
 
     def refund(
         self,
         transaction_id: str,
         amount: Decimal,
         idempotency_key: str,
-    ) -> PaymentResult:
-        ...    
-
+    ) -> PaymentResult: ...
 
     def parse_webhook(
         self,
         data: dict,
-    ) -> PaymentResult:
-        ...    
-
+    ) -> PaymentResult: ...
 
     def verify_webhook(
         self,
         data: dict,
         signature: str,
-    ) -> bool:
-        ...    
+    ) -> bool: ...

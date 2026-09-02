@@ -6,10 +6,10 @@ from sqlalchemy.orm import Session
 
 from app.enums.payment_status import PaymentStatus
 from app.models.payment import PaymentModel
-from app.repositories.base import BaseRepository
+from app.repositories.payment.base import BasePaymentRepository
 
 
-class PaymentRepository(BaseRepository[PaymentModel]):
+class PaymentRepository(BasePaymentRepository):
     def __init__(self, db: Session):
         super().__init__(PaymentModel, db)
 
@@ -17,14 +17,9 @@ class PaymentRepository(BaseRepository[PaymentModel]):
         self,
         payment_id: int,
     ) -> PaymentModel | None:
-        stmt = (
-            select(self.model)
-            .where(self.model.id == payment_id)
-            .with_for_update()
-        )
+        stmt = select(self.model).where(self.model.id == payment_id).with_for_update()
 
         return self.db.scalar(stmt)
-        
 
     def get_by_idempotency_key(
         self,
@@ -39,7 +34,6 @@ class PaymentRepository(BaseRepository[PaymentModel]):
 
         return self.db.scalar(stmt)
 
-    
     def create(
         self,
         order_id: int,
@@ -53,9 +47,8 @@ class PaymentRepository(BaseRepository[PaymentModel]):
             provider=provider,
             idempotency_key=idempotency_key,
         )
-    
-        return self.add(payment)
 
+        return self.add(payment)
 
     def get_by_transaction_id_for_update(
         self,
@@ -67,7 +60,6 @@ class PaymentRepository(BaseRepository[PaymentModel]):
             .with_for_update()
         )
 
-
         return self.db.scalar(stmt)
 
     def get_by_id(
@@ -75,7 +67,6 @@ class PaymentRepository(BaseRepository[PaymentModel]):
         payment_id: int,
     ) -> PaymentModel | None:
         return self.get(payment_id)
-
 
     def has_successful_payment(self, order_id: int) -> bool:
         stmt = (
@@ -95,7 +86,7 @@ class PaymentRepository(BaseRepository[PaymentModel]):
         processing_timeout: timedelta,
     ) -> bool:
         now = datetime.now(UTC)
-        threshold = now - processing_timeout    
+        threshold = now - processing_timeout
 
         stmt = (
             update(self.model)
@@ -108,10 +99,10 @@ class PaymentRepository(BaseRepository[PaymentModel]):
                 ),
             )
             .values(processing_started_at=now)
-        )   
+        )
 
         result = self.db.execute(stmt)
-        self.db.commit()    
+        self.db.commit()
 
         return result.rowcount == 1
 
@@ -119,27 +110,18 @@ class PaymentRepository(BaseRepository[PaymentModel]):
         self,
         order_id: int,
     ) -> PaymentModel | None:
-        stmt = (
-            select(self.model)
-            .where(self.model.order_id == order_id)
-            .where(self.model.status == PaymentStatus.PAID)
-            .with_for_update()
-        )
+        stmt = self._get_paid_by_order_id_for_update(order_id)
 
         return self.db.scalar(stmt)
 
-
     def get_refund_pending_by_order_id(
-    self,
-    order_id: int,
+        self,
+        order_id: int,
     ) -> PaymentModel | None:
         stmt = (
             select(self.model)
             .where(self.model.order_id == order_id)
-            .where(
-                self.model.status
-                == PaymentStatus.REFUND_PENDING
-            )
+            .where(self.model.status == PaymentStatus.REFUND_PENDING)
         )
 
         return self.db.scalar(stmt)

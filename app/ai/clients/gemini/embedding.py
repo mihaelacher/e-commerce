@@ -59,7 +59,6 @@ class GeminiEmbeddingClient(EmbeddingClient):
             )
             raise
 
-
     async def embed_async(
         self,
         text: str,

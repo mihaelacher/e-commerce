@@ -2,7 +2,9 @@ from typing import ClassVar
 
 from app.ai.clients.embedding_base import EmbeddingClient
 from app.ai.tools.schemas import SearchProductsInput
-from app.repositories.product.async_product import AsyncProductRepository as ProductRepository
+from app.repositories.product.async_product import (
+    AsyncProductRepository as ProductRepository,
+)
 
 
 class SearchProductsTool:

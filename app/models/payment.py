@@ -32,7 +32,7 @@ class PaymentModel(Base):
             "amount > 0",
             name="ck_payment_amount_positive",
         ),
-         UniqueConstraint(
+        UniqueConstraint(
             "order_id",
             "idempotency_key",
             name="uq_payment_order_idempotency_key",

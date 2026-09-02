@@ -4,7 +4,7 @@ from app.core.database import SessionLocal
 from app.core.dependencies.payment import get_payment_provider
 from app.core.logging import capture_exception, get_logger
 from app.enums.payment_status import PaymentStatus
-from app.repositories.payment import PaymentRepository
+from app.repositories.payment.sync_payment import PaymentRepository
 from app.tasks.celery import celery_app
 
 logger = get_logger(__name__)

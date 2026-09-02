@@ -18,10 +18,7 @@ async def chat(
     request: AIChatRequest,
     ai_service: Annotated[AIService, Depends(get_ai_service)],
 ) -> AIChatResponse:
-    conversation_id = (
-        request.conversation_id
-        or str(uuid4())
-    )
+    conversation_id = request.conversation_id or str(uuid4())
 
     message = await ai_service.chat(
         message=request.message,

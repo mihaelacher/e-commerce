@@ -6,10 +6,9 @@ def best_selling_products(data, limit: int) -> list[dict]:
 
     if df.empty:
         return []
-    
+
     return (
-        df
-        .groupby(["product_id", "product_name"], as_index=False)
+        df.groupby(["product_id", "product_name"], as_index=False)
         .agg(
             units_sold=("quantity", "sum"),
             revenue=("total_price", "sum"),
@@ -30,14 +29,11 @@ def daily_sales(data) -> list[dict]:
         return []
 
     df["date"] = (
-        pd.to_datetime(df["created_at"], utc=True)
-        .dt.tz_convert("Europe/Sofia")
-        .dt.date
+        pd.to_datetime(df["created_at"], utc=True).dt.tz_convert("Europe/Sofia").dt.date
     )
 
     return (
-        df
-        .groupby("date", as_index=False)
+        df.groupby("date", as_index=False)
         .agg(
             orders=("order_id", "nunique"),
             units_sold=("quantity", "sum"),
