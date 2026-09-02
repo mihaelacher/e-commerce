@@ -13,7 +13,7 @@ from app.models.payment import PaymentModel
 from app.providers.payment.base import PaymentGateway
 from app.repositories.order import OrderRepository
 from app.repositories.payment import PaymentRepository
-from app.repositories.product import ProductRepository
+from app.repositories.product.sync import ProductRepository
 from app.tasks.order_confirmation import (
     notify_order_created_task,
     send_order_confirmation_task,

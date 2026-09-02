@@ -1,7 +1,7 @@
 from app.core.database import SessionLocal
 from app.core.dependencies.ai import get_embedding_client
 from app.core.logging import capture_exception, get_logger
-from app.repositories.product import ProductRepository
+from app.repositories.product.sync import ProductRepository
 from app.services.embeddings import build_product_text
 from app.tasks.celery import celery_app
 

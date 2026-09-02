@@ -1,15 +1,17 @@
 from types import SimpleNamespace
 
+import pytest
+
 from app.ai.tools.search_products import SearchProductsTool
 
 
 class FakeEmbeddingClient:
-    def embed(self, text: str):
+    async def embed_async(self, text: str):
         return [0.1, 0.2, 0.3]
 
 
 class FakeProductRepository:
-    def semantic_search(
+    async def semantic_search(
         self,
         query_embedding,
         min_price=None,
@@ -30,7 +32,7 @@ class FakeProductRepository:
 
 
 class EmptyProductRepository:
-    def semantic_search(
+    async def semantic_search(
         self,
         query_embedding,
         min_price=None,
@@ -40,13 +42,14 @@ class EmptyProductRepository:
         return []
 
 
-def test_search_products():
+@pytest.mark.anyio
+async def test_search_products():
     tool = SearchProductsTool(
         embedding_client=FakeEmbeddingClient(),
         product_repository=FakeProductRepository(),
     )
 
-    result = tool.execute(
+    result = await tool.execute(
         query="wireless headphones",
         max_price=150,
     )
@@ -61,13 +64,14 @@ def test_search_products():
     ]
 
 
-def test_search_products_returns_empty_list_when_no_results():
+@pytest.mark.anyio
+async def test_search_products_returns_empty_list_when_no_results():
     tool = SearchProductsTool(
         embedding_client=FakeEmbeddingClient(),
         product_repository=EmptyProductRepository(),
     )
 
-    result = tool.execute(
+    result = await tool.execute(
         query="wireless headphones",
     )
 

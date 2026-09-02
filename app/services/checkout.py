@@ -15,7 +15,7 @@ from app.exceptions.product import ProductNotFoundError
 from app.models.order import OrderModel
 from app.repositories.order import OrderRepository
 from app.repositories.order_item import OrderItemRepository
-from app.repositories.product import ProductRepository
+from app.repositories.product.sync import ProductRepository
 
 
 def get_order_with_items(

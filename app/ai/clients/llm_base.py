@@ -6,7 +6,7 @@ from app.ai.models import LLMResponse
 
 class LLMClient(ABC):
     @abstractmethod
-    def chat(
+    async def chat(
         self,
         message: str,
         tools: list[dict] | None = None,
@@ -15,7 +15,7 @@ class LLMClient(ABC):
         ...
 
     @abstractmethod
-    def chat_with_tool_result(
+    async def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
         tool_result: Any,

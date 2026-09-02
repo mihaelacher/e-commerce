@@ -4,7 +4,7 @@ from typing import Any
 from google import genai
 from google.genai import types
 
-from app.ai.clients.gemini.helper import with_retry
+from app.ai.clients.gemini.helper import with_retry_async
 from app.ai.clients.llm_base import LLMClient
 from app.ai.models import LLMResponse, ToolCall
 from app.core.config import settings
@@ -36,7 +36,7 @@ class GeminiClient(LLMClient):
             ),
         )
 
-    def chat(
+    async def chat(
         self,
         message: str,
         tools: list[dict] | None = None,
@@ -44,7 +44,7 @@ class GeminiClient(LLMClient):
     ) -> LLMResponse:
         start_time = perf_counter()
 
-        def request():
+        async def request():
             user_content = types.Content(
                 role="user",
                 parts=[
@@ -57,7 +57,7 @@ class GeminiClient(LLMClient):
                 user_content,
             ]
 
-            response = self.client.models.generate_content(
+            response = await self.client.models.generate_content(
                 model=self.model,
                 contents=contents,
                 config=types.GenerateContentConfig(
@@ -83,7 +83,7 @@ class GeminiClient(LLMClient):
             )
 
         try:
-            return with_retry(request)
+            return await with_retry_async(request)
         except Exception:
             self._log_failed_call(
                 operation="chat",
@@ -91,7 +91,7 @@ class GeminiClient(LLMClient):
             )
             raise
 
-    def chat_with_tool_result(
+    async def chat_with_tool_result(
         self,
         previous_response: LLMResponse,
         tool_result: Any,
@@ -99,7 +99,7 @@ class GeminiClient(LLMClient):
     ) -> LLMResponse:
         start_time = perf_counter()
 
-        def request():
+        async def request():
             function_response = types.Content(
                 role="user",
                 parts=[
@@ -117,7 +117,7 @@ class GeminiClient(LLMClient):
                 function_response,
             ]
 
-            response = self.client.models.generate_content(
+            response = await self.client.models.generate_content(
                 model=self.model,
                 contents=contents,
                 config=types.GenerateContentConfig(
@@ -143,7 +143,7 @@ class GeminiClient(LLMClient):
             )
 
         try:
-            return with_retry(request)
+            return await with_retry_async(request)
         except Exception:
             self._log_failed_call(
                 operation="tool_result",

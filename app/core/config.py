@@ -62,6 +62,14 @@ class Settings(BaseSettings):
 
     @computed_field
     @property
+    def async_connection_url(self) -> str:
+        return (
+            f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
+
+    @computed_field
+    @property
     def celery_broker(self) -> str:
         return self.celery_broker_url or self.redis_url
 

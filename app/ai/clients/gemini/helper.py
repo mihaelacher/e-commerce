@@ -1,3 +1,4 @@
+import asyncio
 import time
 
 import httpx
@@ -26,34 +27,42 @@ def with_retry(func):
 
         except errors.ClientError as exc:
             if exc.code == 429:
-
                 logger.warning(
                     "ai_retry_rate_limited",
-                    extra={"attempt": attempt + 1, "max_attempts": max_attempts},
+                    extra={
+                        "attempt": attempt + 1,
+                        "max_attempts": max_attempts,
+                    },
                 )
-                
+
                 raise AIProviderUnavailableError(
                     "AI provider quota has been exceeded."
                 ) from exc
 
             logger.exception(
                 "ai_retry_client_error",
-                extra={"attempt": attempt + 1, "max_attempts": max_attempts},
+                extra={
+                    "attempt": attempt + 1,
+                    "max_attempts": max_attempts,
+                },
             )
             raise
 
         except RETRYABLE_EXCEPTIONS as exc:
             if attempt == max_attempts - 1:
-
                 logger.exception(
                     "ai_retry_exhausted",
-                    extra={"attempt": attempt + 1, "max_attempts": max_attempts},
+                    extra={
+                        "attempt": attempt + 1,
+                        "max_attempts": max_attempts,
+                    },
                 )
+
                 raise AIProviderUnavailableError(
                     "AI provider is temporarily unavailable."
                 ) from exc
 
-            delay_seconds = 2 ** attempt
+            delay_seconds = 2**attempt
 
             logger.warning(
                 "ai_retrying_after_transient_error",
@@ -64,4 +73,64 @@ def with_retry(func):
                     "exception_type": type(exc).__name__,
                 },
             )
+
             time.sleep(delay_seconds)
+
+
+async def with_retry_async(func):
+    max_attempts = settings.ai_provider_max_attempts
+
+    for attempt in range(max_attempts):
+        try:
+            return await func()
+
+        except errors.ClientError as exc:
+            if exc.code == 429:
+                logger.warning(
+                    "ai_retry_rate_limited",
+                    extra={
+                        "attempt": attempt + 1,
+                        "max_attempts": max_attempts,
+                    },
+                )
+
+                raise AIProviderUnavailableError(
+                    "AI provider quota has been exceeded."
+                ) from exc
+
+            logger.exception(
+                "ai_retry_client_error",
+                extra={
+                    "attempt": attempt + 1,
+                    "max_attempts": max_attempts,
+                },
+            )
+            raise
+
+        except RETRYABLE_EXCEPTIONS as exc:
+            if attempt == max_attempts - 1:
+                logger.exception(
+                    "ai_retry_exhausted",
+                    extra={
+                        "attempt": attempt + 1,
+                        "max_attempts": max_attempts,
+                    },
+                )
+
+                raise AIProviderUnavailableError(
+                    "AI provider is temporarily unavailable."
+                ) from exc
+
+            delay_seconds = 2**attempt
+
+            logger.warning(
+                "ai_retrying_after_transient_error",
+                extra={
+                    "attempt": attempt + 1,
+                    "max_attempts": max_attempts,
+                    "delay_seconds": delay_seconds,
+                    "exception_type": type(exc).__name__,
+                },
+            )
+
+            await asyncio.sleep(delay_seconds)

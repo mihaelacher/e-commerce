@@ -1,5 +1,5 @@
 from app.core.database import SessionLocal, transaction
-from app.repositories.product import ProductRepository
+from app.repositories.product.sync import ProductRepository
 from scripts.seed.product_data import PRODUCTS
 
 

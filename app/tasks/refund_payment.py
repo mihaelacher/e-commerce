@@ -4,7 +4,7 @@ from app.enums.order import OrderStatus
 from app.enums.payment_status import PaymentStatus
 from app.repositories.order import OrderRepository
 from app.repositories.payment import PaymentRepository
-from app.repositories.product import ProductRepository
+from app.repositories.product.sync import ProductRepository
 from app.tasks.celery import celery_app
 
 

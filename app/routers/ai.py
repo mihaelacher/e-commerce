@@ -14,7 +14,7 @@ router = APIRouter(
 
 
 @router.post("/chat", response_model=AIChatResponse)
-def chat(
+async def chat(
     request: AIChatRequest,
     ai_service: Annotated[AIService, Depends(get_ai_service)],
 ) -> AIChatResponse:
@@ -23,7 +23,7 @@ def chat(
         or str(uuid4())
     )
 
-    message = ai_service.chat(
+    message = await ai_service.chat(
         message=request.message,
         conversation_id=conversation_id,
         confirm_action=request.confirm_action,

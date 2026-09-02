@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends
 from redis import Redis
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from app.ai.clients.embedding_base import EmbeddingClient
@@ -13,10 +14,10 @@ from app.ai.conversation.store import ConversationStore
 from app.ai.tools.cancel_order import CancelOrderTool
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_products import SearchProductsTool
-from app.core.database import get_db
+from app.core.database import get_async_db, get_db
 from app.core.dependencies.core import get_redis
 from app.repositories.order import OrderRepository
-from app.repositories.product import ProductRepository
+from app.repositories.product.sync import ProductRepository
 from app.services.ai import AIService
 
 
@@ -29,7 +30,7 @@ def get_embedding_client() -> EmbeddingClient:
 
 
 def get_search_products_tool(
-    db: Annotated[Session, Depends(get_db)],
+    db: Annotated[AsyncSession, Depends(get_async_db)],
     embedding_client: Annotated[EmbeddingClient, Depends(get_embedding_client)],
 ) -> SearchProductsTool:
     return SearchProductsTool(

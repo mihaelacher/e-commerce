@@ -1,7 +1,7 @@
 import json
 from datetime import UTC, datetime
 from decimal import Decimal
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -60,12 +60,12 @@ async def test_search_products() -> None:
 
     with (
         patch(
-            "app.mcp.server.embedding_client.embed",
-            return_value=[0.1, 0.2, 0.3],
+            "app.mcp.server.embedding_client.embed_async",
+            new=AsyncMock(return_value=[0.1, 0.2, 0.3]),
         ),
         patch(
             "app.mcp.server.ProductRepository.semantic_search",
-            return_value=mocked_products,
+            new=AsyncMock(return_value=mocked_products),
         ),
     ):
         async with Client(mcp) as client:

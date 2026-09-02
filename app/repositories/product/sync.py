@@ -1,13 +1,11 @@
-from decimal import Decimal
-
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.models.product import ProductModel
-from app.repositories.base import BaseRepository
+from app.repositories.product.base import BaseProductRepository
 
 
-class ProductRepository(BaseRepository[ProductModel]):
+class ProductRepository(BaseProductRepository):
     def __init__(self, db: Session):
         super().__init__(ProductModel, db)
 
@@ -77,39 +75,15 @@ class ProductRepository(BaseRepository[ProductModel]):
     def semantic_search(
         self,
         query_embedding: list[float],
-        min_price: Decimal | None = None,
-        max_price: Decimal | None = None,
+        min_price: float | None = None,
+        max_price: float | None = None,
         limit: int = 5,
     ):
-        distance = ProductModel.embedding.cosine_distance(
-            query_embedding
-        )
-
-        stmt = (
-            select(
-                ProductModel,
-                distance.label("distance"),
-            )
-            .where(
-                ProductModel.embedding.is_not(None),
-                ProductModel.stock > 0,
-            )
-        )
-
-        if min_price is not None:
-            stmt = stmt.where(
-                ProductModel.price >= min_price
-            )
-
-        if max_price is not None:
-            stmt = stmt.where(
-                ProductModel.price <= max_price
-            )
-
-        stmt = (
-            stmt
-            .order_by(distance)
-            .limit(limit)
+        stmt = self._semantic_search_stmt(
+            query_embedding=query_embedding,
+            min_price=min_price,
+            max_price=max_price,
+            limit=limit,
         )
 
         return self.db.execute(stmt).all()

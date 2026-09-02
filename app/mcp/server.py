@@ -6,11 +6,11 @@ from app.ai.models import PendingAction
 from app.ai.pending_actions.redis_store import RedisPendingActionStore
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_products import SearchProductsTool
-from app.core.database import SessionLocal
+from app.core.database import AsyncSessionLocal, SessionLocal
 from app.core.dependencies.ai import get_embedding_client
 from app.core.dependencies.core import get_redis
 from app.repositories.order import OrderRepository
-from app.repositories.product import ProductRepository
+from app.repositories.product.sync import ProductRepository
 
 mcp = MCPServer("ecommerce")
 
@@ -27,6 +27,9 @@ class LazyEmbeddingClient:
     def embed(self, text: str) -> list[float]:
         return self._get_client().embed(text)
 
+    async def embed_async(self, text: str) -> list[float]:
+        return await self._get_client().embed_async(text)
+
 
 embedding_client = LazyEmbeddingClient()
 
@@ -38,18 +41,18 @@ def ping() -> str:
 
 
 @mcp.tool()
-def search_products(
+async def search_products(
     query: str,
     min_price: float | None = None,
     max_price: float | None = None,
 ) -> list[dict]:
-    with SessionLocal() as db:
+    async with AsyncSessionLocal() as db:
         tool = SearchProductsTool(
             embedding_client=embedding_client,
             product_repository=ProductRepository(db=db),
         )
 
-        return tool.execute(
+        return await tool.execute(
             query=query,
             min_price=min_price,
             max_price=max_price,

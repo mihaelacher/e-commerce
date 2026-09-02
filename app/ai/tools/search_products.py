@@ -2,7 +2,7 @@ from typing import ClassVar
 
 from app.ai.clients.embedding_base import EmbeddingClient
 from app.ai.tools.schemas import SearchProductsInput
-from app.repositories.product import ProductRepository
+from app.repositories.product.async_product import AsyncProductRepository as ProductRepository
 
 
 class SearchProductsTool:
@@ -43,15 +43,15 @@ class SearchProductsTool:
         self.embedding_client = embedding_client
         self.product_repository = product_repository
 
-    def execute(
+    async def execute(
         self,
         query: str,
         min_price: float | None = None,
         max_price: float | None = None,
     ) -> list[dict]:
-        query_embedding = self.embedding_client.embed(query)
+        query_embedding = await self.embedding_client.embed_async(query)
 
-        results = self.product_repository.semantic_search(
+        results = await self.product_repository.semantic_search(
             query_embedding=query_embedding,
             min_price=min_price,
             max_price=max_price,

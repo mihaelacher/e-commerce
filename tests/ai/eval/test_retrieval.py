@@ -7,7 +7,7 @@ from app.ai.clients.gemini.embedding import GeminiEmbeddingClient
 from app.ai.tools.search_products import SearchProductsTool
 from app.core.config import settings
 from app.core.database import SessionLocal
-from app.repositories.product import ProductRepository
+from app.repositories.product.sync import ProductRepository
 from tests.ai.eval.cases import RETRIEVAL_CASES
 
 
