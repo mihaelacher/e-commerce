@@ -28,7 +28,7 @@ async def test_cancel_completed_order():
     mocked_db = MagicMock()
 
     with patch(
-        "app.ai.tools.cancel_order.cancel_order",
+        "app.ai.tools.cancel_order.cancel_order_async",
         new=AsyncMock(return_value=mocked_order),
     ):
         tool = CancelOrderTool(db=mocked_db)
@@ -50,7 +50,7 @@ async def test_cancel_paid_order_with_refund():
     mocked_db = MagicMock()
 
     with patch(
-        "app.ai.tools.cancel_order.cancel_order",
+        "app.ai.tools.cancel_order.cancel_order_async",
         new=AsyncMock(return_value=mocked_order),
     ):
         tool = CancelOrderTool(db=mocked_db)
@@ -67,7 +67,7 @@ async def test_cancel_pending_order_fails():
     mocked_db = MagicMock()
 
     with patch(
-        "app.ai.tools.cancel_order.cancel_order",
+        "app.ai.tools.cancel_order.cancel_order_async",
         new=AsyncMock(
             side_effect=OrderCannotBeCancelledError(
                 order_id=1,
@@ -86,7 +86,7 @@ async def test_cancel_payment_pending_order_fails():
     mocked_db = MagicMock()
 
     with patch(
-        "app.ai.tools.cancel_order.cancel_order",
+        "app.ai.tools.cancel_order.cancel_order_async",
         new=AsyncMock(
             side_effect=OrderCannotBeCancelledError(
                 order_id=2,
@@ -109,7 +109,7 @@ async def test_cancel_already_cancelled_order_is_idempotent():
     mocked_db = MagicMock()
 
     with patch(
-        "app.ai.tools.cancel_order.cancel_order",
+        "app.ai.tools.cancel_order.cancel_order_async",
         new=AsyncMock(return_value=mocked_order),
     ):
         tool = CancelOrderTool(db=mocked_db)
@@ -130,7 +130,7 @@ async def test_cancel_cancellation_pending_order_is_idempotent():
     mocked_db = MagicMock()
 
     with patch(
-        "app.ai.tools.cancel_order.cancel_order",
+        "app.ai.tools.cancel_order.cancel_order_async",
         new=AsyncMock(return_value=mocked_order),
     ):
         tool = CancelOrderTool(db=mocked_db)
@@ -149,7 +149,7 @@ async def test_cancel_order_not_found():
     mocked_db = MagicMock()
 
     with patch(
-        "app.ai.tools.cancel_order.cancel_order",
+        "app.ai.tools.cancel_order.cancel_order_async",
         new=AsyncMock(side_effect=OrderNotFoundError(99)),
     ):
         tool = CancelOrderTool(db=mocked_db)

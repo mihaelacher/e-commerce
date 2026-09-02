@@ -3,7 +3,7 @@ from typing import ClassVar
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.tools.schemas import CancelOrderInput
-from app.services.order import cancel_order
+from app.services.order import cancel_order_async
 
 
 class CancelOrderTool:
@@ -37,7 +37,7 @@ class CancelOrderTool:
         self,
         order_id: int,
     ) -> dict:
-        order = await cancel_order(
+        order = await cancel_order_async(
             db=self.db,
             order_id=order_id,
         )
