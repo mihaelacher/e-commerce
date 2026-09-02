@@ -20,3 +20,10 @@ class LLMResponse:
 class PendingToolCall:
     name: str
     arguments: dict    
+
+
+@dataclass
+class PendingAction:
+    action_id: str
+    name: str
+    arguments: dict[str, Any]    

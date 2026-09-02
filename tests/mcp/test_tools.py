@@ -32,7 +32,7 @@ async def test_available_tools() -> None:
         assert "ping" in tool_names
         assert "search_products" in tool_names
         assert "get_order_status" in tool_names
-        assert "cancel_order" in tool_names
+        assert "request_order_cancellation" in tool_names
 
 
 @pytest.mark.anyio
@@ -121,19 +121,19 @@ async def test_get_order_status() -> None:
 
 
 @pytest.mark.anyio
-async def test_cancel_order() -> None:
-    mocked_order = MagicMock(
-        id=5,
-        status="completed",
-    )
-
-    with patch(
-        "app.ai.tools.cancel_order.cancel_order",
-        return_value=mocked_order,
+async def test_request_order_cancellation() -> None:
+    with (
+        patch(
+            "app.mcp.server.uuid4",
+            return_value="action-123",
+        ),
+        patch(
+            "app.mcp.server.RedisPendingActionStore.save",
+        ) as save,
     ):
         async with Client(mcp) as client:
             result = await client.call_tool(
-                "cancel_order",
+                "request_order_cancellation",
                 {"order_id": 5},
             )
 
@@ -141,44 +141,33 @@ async def test_cancel_order() -> None:
 
     response = json.loads(result.content[0].text)
 
-    assert response["success"] is True
-    assert response["order_id"] == 5
-    assert response["status"] == "completed"
+    assert response == {
+        "status": "confirmation_required",
+        "action_id": "action-123",
+        "action": "cancel_order",
+        "arguments": {
+            "order_id": 5,
+        },
+    }
+
+    save.assert_called_once()
 
 
 @pytest.mark.anyio
-async def test_cancel_order_fails_when_order_not_found() -> None:
-    from app.exceptions.checkout import OrderNotFoundError
-
-    with patch(
-        "app.services.order.cancel_order",
-        side_effect=OrderNotFoundError(999),
-    ):
-        async with Client(mcp) as client:
-            result = await client.call_tool(
-                "cancel_order",
-                {"order_id": 999},
-            )
-
-    assert result.is_error is True
-
-
-@pytest.mark.anyio
-async def test_cancel_order_fails_for_pending_order() -> None:
-    from app.enums.order import OrderStatus
-    from app.exceptions.order import OrderCannotBeCancelledError
-
-    with patch(
-        "app.services.order.cancel_order",
-        side_effect=OrderCannotBeCancelledError(
-            order_id=6,
-            status=OrderStatus.PENDING,
+async def test_request_order_cancellation_does_not_cancel_order() -> None:
+    with (
+        patch(
+            "app.mcp.server.RedisPendingActionStore.save",
         ),
+        patch(
+            "app.ai.tools.cancel_order.CancelOrderTool.execute",
+        ) as execute,
     ):
         async with Client(mcp) as client:
             result = await client.call_tool(
-                "cancel_order",
-                {"order_id": 6},
+                "request_order_cancellation",
+                {"order_id": 5},
             )
 
-    assert result.is_error is True
+    assert result.is_error is False
+    execute.assert_not_called()    

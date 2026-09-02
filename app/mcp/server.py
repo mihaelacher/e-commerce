@@ -1,10 +1,14 @@
+from uuid import uuid4
+
 from mcp.server import MCPServer
 
-from app.ai.tools.cancel_order import CancelOrderTool
+from app.ai.models import PendingAction
+from app.ai.pending_actions.redis_store import RedisPendingActionStore
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_products import SearchProductsTool
 from app.core.database import SessionLocal
 from app.core.dependencies.ai import get_embedding_client
+from app.core.dependencies.core import get_redis
 from app.repositories.order import OrderRepository
 from app.repositories.product import ProductRepository
 
@@ -63,13 +67,33 @@ def get_order_status(order_id: int) -> dict:
 
 
 @mcp.tool()
-def cancel_order(order_id: int) -> dict:
-    with SessionLocal() as db:
-        tool = CancelOrderTool(
-            db=db,
-        )
+def request_order_cancellation(
+    order_id: int,
+) -> dict:
+    action_id = str(uuid4())
 
-        return tool.execute(order_id=order_id)        
+    store = RedisPendingActionStore(
+        redis=get_redis(),
+    )
+
+    store.save(
+        PendingAction(
+            action_id=action_id,
+            name="cancel_order",
+            arguments={
+                "order_id": order_id,
+            },
+        )
+    )
+
+    return {
+        "status": "confirmation_required",
+        "action_id": action_id,
+        "action": "cancel_order",
+        "arguments": {
+            "order_id": order_id,
+        },
+    }       
 
 
 if __name__ == "__main__":

@@ -27,11 +27,14 @@ from app.exceptions.handlers import (
     order_item_not_found_handler,
     order_not_found_handler,
     payment_not_found_handler,
+    pending_action_not_found_handler,
+    pending_action_unsupported_handler,
     product_not_found_handler,
 )
 from app.exceptions.payment import OrderCannotBePaidError, PaymentNotFoundError
+from app.exceptions.pending_action import PendingActionNotFoundError, UnsupportedPendingActionError
 from app.exceptions.product import ProductNotFoundError
-from app.routers import ai, analytics, checkout, order, payment, product
+from app.routers import ai, analytics, checkout, order, payment, pending_actions, product
 
 configure_logging()
 setup_error_tracking()
@@ -116,6 +119,7 @@ def create_app() -> FastAPI:
     app.include_router(payment.router)
     app.include_router(analytics.router)
     app.include_router(ai.router)
+    app.include_router(pending_actions.router)
 
     app.add_exception_handler(
         ProductNotFoundError,
@@ -152,6 +156,14 @@ def create_app() -> FastAPI:
     app.add_exception_handler(
         AIProviderUnavailableError,
         ai_provider_unavailable_handler,
+    )
+    app.add_exception_handler(
+        PendingActionNotFoundError,
+        pending_action_not_found_handler,
+    )
+    app.add_exception_handler(
+        UnsupportedPendingActionError,
+        pending_action_unsupported_handler,
     )
 
     return app
