@@ -1,17 +1,18 @@
 import time
+from typing import Annotated
 
-import redis
-from fastapi import HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
+from redis.asyncio import Redis
+from redis.exceptions import RedisError
 
 from app.core.config import settings
-
-redis_client = redis.Redis.from_url(
-    settings.redis_url,
-    decode_responses=True,
-)
+from app.core.dependencies.core import get_redis
 
 
-def enforce_ai_rate_limit(request: Request) -> None:
+async def enforce_ai_rate_limit(
+    request: Request,
+    redis: Annotated[Redis, Depends(get_redis)],
+) -> None:
     client_host = request.client.host if request.client else "unknown"
 
     window_seconds = settings.ai_rate_limit_window_seconds
@@ -21,13 +22,13 @@ def enforce_ai_rate_limit(request: Request) -> None:
     key = f"rate-limit:ai:{client_host}:{current_window}"
 
     try:
-        with redis_client.pipeline(transaction=True) as pipeline:
-            pipeline.incr(key)
-            pipeline.expire(key, window_seconds)
+        async with redis.pipeline(transaction=True) as pipeline:
+            await pipeline.incr(key)
+            await pipeline.expire(key, window_seconds)
 
-            request_count, _ = pipeline.execute()
+            request_count, _ = await pipeline.execute()
 
-    except redis.RedisError as exc:
+    except RedisError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Rate limiting service is unavailable.",

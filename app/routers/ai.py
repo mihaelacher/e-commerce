@@ -4,6 +4,7 @@ from uuid import uuid4
 from fastapi import APIRouter, Depends
 
 from app.core.dependencies.ai import get_ai_service
+from app.core.rate_limit import enforce_ai_rate_limit
 from app.schemas.ai import AIChatRequest, AIChatResponse
 from app.services.ai import AIService
 
@@ -17,6 +18,7 @@ router = APIRouter(
 async def chat(
     request: AIChatRequest,
     ai_service: Annotated[AIService, Depends(get_ai_service)],
+    _: Annotated[None, Depends(enforce_ai_rate_limit)],
 ) -> AIChatResponse:
     conversation_id = request.conversation_id or str(uuid4())
 

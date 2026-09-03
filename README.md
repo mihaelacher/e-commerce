@@ -1,6 +1,6 @@
 # E-commerce API
 
-A FastAPI learning project for an e-commerce backend with product management, checkout flow, analytics, AI features, and workflow automation.
+A FastAPI learning project for an e-commerce backend with product management, checkout flow, analytics, AI features, and workflow automation. I am aware that all kind of user authentication and authorization are missing, but this is something I have actually worked with, so it doesn't fall under the "learning" category in this case and is currently with lower priority for the project's purposes.
 
 ## Features
 
