@@ -7,6 +7,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     ForeignKey,
+    Index,
     Numeric,
     String,
     UniqueConstraint,
@@ -28,6 +29,11 @@ class PaymentModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     __table_args__ = (
+        Index(
+            "ix_payments_order_id_status",
+            "order_id",
+            "status",
+        ),
         CheckConstraint(
             "amount > 0",
             name="ck_payment_amount_positive",

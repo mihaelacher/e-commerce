@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, DateTime, Enum, Numeric, String
+from sqlalchemy import CheckConstraint, DateTime, Enum, Index, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -18,6 +18,11 @@ class OrderModel(Base):
     __tablename__ = "orders"
 
     __table_args__ = (
+        Index(
+            "ix_orders_status_created_at",
+            "status",
+            "created_at",
+        ),
         CheckConstraint(
             "subtotal >= 0",
             name="ck_order_subtotal_non_negative",

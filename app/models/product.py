@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 
 from pgvector.sqlalchemy import VECTOR
-from sqlalchemy import CheckConstraint, DateTime, Numeric, String, Text
+from sqlalchemy import CheckConstraint, DateTime, Index, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy.sql import func
 
@@ -13,6 +13,17 @@ class ProductModel(Base):
     __tablename__ = "products"
 
     __table_args__ = (
+        Index(
+            "ix_products_embedding_cosine",
+            "embedding",
+            postgresql_using="hnsw",
+            postgresql_ops={"embedding": "vector_cosine_ops"},
+        ),
+        Index(
+            "ix_products_without_embedding",
+            "id",
+            postgresql_where="embedding IS NULL",
+        ),
         CheckConstraint(
             "price > 0",
             name="ck_product_price_positive",
