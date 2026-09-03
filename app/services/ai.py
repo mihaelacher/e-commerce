@@ -62,7 +62,9 @@ class AIService:
                         "reason": "User rejected the action.",
                     }
 
-                    await self.conversation_store.clear_pending_tool_call(conversation_id)
+                    await self.conversation_store.clear_pending_tool_call(
+                        conversation_id
+                    )
 
                     response = await self.ai_client.chat_with_tool_result(
                         previous_response=previous_response,
@@ -84,7 +86,9 @@ class AIService:
 
                     tool_result = await tool.execute(**arguments.model_dump())
 
-                    await self.conversation_store.clear_pending_tool_call(conversation_id)
+                    await self.conversation_store.clear_pending_tool_call(
+                        conversation_id
+                    )
 
                     response = await self.ai_client.chat_with_tool_result(
                         previous_response=previous_response,

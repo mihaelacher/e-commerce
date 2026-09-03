@@ -1,9 +1,15 @@
 import os
 
 import pytest
+import pytest_asyncio
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
@@ -17,6 +23,10 @@ TEST_DATABASE_URL = os.getenv(
         f"postgresql://{settings.postgres_user}:{settings.postgres_password}"
         f"@{DEFAULT_TEST_HOST}:{settings.postgres_port}/ecommerce_test"
     ),
+)
+TEST_ASYNC_DATABASE_URL = TEST_DATABASE_URL.replace(
+    "postgresql://",
+    "postgresql+asyncpg://",
 )
 
 
@@ -101,3 +111,21 @@ def db(test_db):
 @pytest.fixture
 def testing_session_factory():
     return TestingSessionLocal
+
+
+async_engine = create_async_engine(
+    TEST_ASYNC_DATABASE_URL,
+    pool_pre_ping=True,
+)
+
+AsyncTestingSessionLocal = async_sessionmaker(
+    bind=async_engine,
+    class_=AsyncSession,
+    expire_on_commit=False,
+)
+
+
+@pytest_asyncio.fixture
+async def async_db(test_db):
+    async with AsyncTestingSessionLocal() as db:
+        yield db

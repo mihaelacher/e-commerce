@@ -19,3 +19,7 @@ class GetOrderStatusInput(BaseModel):
 
 class CancelOrderInput(BaseModel):
     order_id: int = Field(gt=0)
+
+
+class SearchKnowledgeInput(BaseModel):
+    query: str = Field(min_length=1)

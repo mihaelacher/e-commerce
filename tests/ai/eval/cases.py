@@ -96,6 +96,43 @@ EVAL_CASES = [
             "query": "products",
         },
     },
+    {
+        "message": "How many days do I have to return a product?",
+        "expected_tool": "search_knowledge",
+        "expected_arguments": {},
+        "expected_query_terms": [
+            "return",
+            "returns",
+            "return policy",
+        ],
+    },
+    {
+        "message": "Can I return an opened product?",
+        "expected_tool": "search_knowledge",
+        "expected_arguments": {},
+        "expected_query_terms": [
+            "opened",
+            "return",
+        ],
+    },
+    {
+        "message": "How long does standard shipping take?",
+        "expected_tool": "search_knowledge",
+        "expected_arguments": {},
+        "expected_query_terms": [
+            "shipping",
+            "delivery",
+        ],
+    },
+    {
+        "message": "Does the warranty cover accidental damage?",
+        "expected_tool": "search_knowledge",
+        "expected_arguments": {},
+        "expected_query_terms": [
+            "warranty",
+            "accidental damage",
+        ],
+    },
 ]
 
 

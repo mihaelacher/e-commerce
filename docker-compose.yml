@@ -17,6 +17,7 @@ services:
       - redis
     volumes:
       - .:/app
+      - /app/.venv
 
   db:
     image: pgvector/pgvector:pg15

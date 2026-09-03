@@ -32,6 +32,7 @@ async def test_available_tools() -> None:
         assert "search_products" in tool_names
         assert "get_order_status" in tool_names
         assert "request_order_cancellation" in tool_names
+        assert "search_knowledge" in tool_names
 
 
 @pytest.mark.anyio
@@ -167,3 +168,58 @@ async def test_request_order_cancellation_does_not_cancel_order() -> None:
 
     assert result.is_error is False
     execute.assert_not_called()
+
+
+@pytest.mark.anyio
+async def test_search_knowledge() -> None:
+    mocked_document = MagicMock()
+    mocked_document.title = "Returns Policy"
+    mocked_document.source = "internal_policy"
+    mocked_document.document_type.value = "policy"
+
+    mocked_chunk = MagicMock()
+    mocked_chunk.content = (
+        "Customers may return eligible products within 30 days of delivery."
+    )
+    mocked_chunk.document = mocked_document
+
+    mocked_results = [
+        (mocked_chunk, 0.18),
+    ]
+
+    with (
+        patch(
+            "app.mcp.server.embedding_client.embed_async",
+            new=AsyncMock(return_value=[0.1, 0.2, 0.3]),
+        ),
+        patch(
+            "app.mcp.server.KnowledgeDocumentRepository.semantic_search",
+            new=AsyncMock(return_value=mocked_results),
+        ),
+    ):
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "search_knowledge",
+                {
+                    "query": ("How many days do I have to return a product?"),
+                },
+            )
+
+    assert result.is_error is False
+    assert result.structured_content is not None
+
+    chunks = [json.loads(item.text) for item in result.content]
+
+    assert len(chunks) == 1
+
+    chunk = chunks[0]
+
+    assert chunk == {
+        "title": "Returns Policy",
+        "source": "internal_policy",
+        "document_type": "policy",
+        "content": (
+            "Customers may return eligible products within 30 days of delivery."
+        ),
+        "distance": 0.18,
+    }

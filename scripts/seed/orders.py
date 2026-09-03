@@ -7,8 +7,8 @@ from sqlalchemy import select
 from app.core.database import SessionLocal, transaction
 from app.enums.order import OrderStatus
 from app.models.product import ProductModel
+from app.repositories.order.order_item import OrderItemRepository
 from app.repositories.order.sync_order import OrderRepository
-from app.repositories.order_item import OrderItemRepository
 from scripts.seed.product_data import PRODUCTS
 
 NUMBER_OF_ORDERS = 100

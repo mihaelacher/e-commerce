@@ -7,7 +7,7 @@ from app.enums.order import OrderStatus
 from app.models.order import OrderModel
 from app.models.order_item import OrderItemModel
 from app.models.product import ProductModel
-from app.repositories.analytics import AnalyticsRepository
+from app.repositories.analytics.analytics import AnalyticsRepository
 from app.services.analytics import get_best_selling_products
 
 REPORTING_TIMEZONE = ZoneInfo("Europe/Sofia")

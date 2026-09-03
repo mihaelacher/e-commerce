@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 
 from app.analytics.sales import best_selling_products, daily_sales
-from app.repositories.analytics import AnalyticsRepository
+from app.repositories.analytics.analytics import AnalyticsRepository
 
 REPORTING_TIMEZONE = ZoneInfo("Europe/Sofia")
 

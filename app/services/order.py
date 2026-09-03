@@ -132,8 +132,8 @@ async def cancel_order_async(
 
     if requires_refund:
         await run_in_threadpool(
-                refund_order_payment.delay,
-                order.id,
-            )
+            refund_order_payment.delay,
+            order.id,
+        )
 
     return order

@@ -3,6 +3,7 @@ import pytest
 from app.ai.clients.gemini.client import GeminiClient
 from app.ai.tools.cancel_order import CancelOrderTool
 from app.ai.tools.get_order_status import GetOrderStatusTool
+from app.ai.tools.search_knowledge import SearchKnowledgeTool
 from app.ai.tools.search_products import SearchProductsTool
 from tests.ai.eval.cases import EVAL_CASES
 
@@ -27,16 +28,18 @@ def assert_arguments(
 
 @pytest.mark.eval
 @pytest.mark.parametrize("case", EVAL_CASES)
-def test_tool_selection(case):
+@pytest.mark.anyio
+async def test_tool_selection(case):
     client = GeminiClient()
 
     tools = [
         SearchProductsTool.definition,
         GetOrderStatusTool.definition,
         CancelOrderTool.definition,
+        SearchKnowledgeTool.definition,
     ]
 
-    response = client.chat(
+    response = await client.chat(
         message=case["message"],
         tools=tools,
     )

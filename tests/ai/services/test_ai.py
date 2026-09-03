@@ -457,7 +457,7 @@ class ConfirmableToolAIClient:
         return state
 
     def deserialize_state(self, state):
-        return state    
+        return state
 
 
 @pytest.mark.anyio

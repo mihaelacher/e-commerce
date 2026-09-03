@@ -5,10 +5,14 @@ from mcp.server import MCPServer
 from app.ai.models import PendingAction
 from app.ai.pending_actions.redis_store import RedisPendingActionStore
 from app.ai.tools.get_order_status import GetOrderStatusTool
+from app.ai.tools.search_knowledge import SearchKnowledgeTool
 from app.ai.tools.search_products import SearchProductsTool
 from app.core.database import AsyncSessionLocal
 from app.core.dependencies.ai import get_embedding_client
 from app.core.dependencies.core import get_redis
+from app.repositories.knowledge.async_knowledge_document import (
+    AsyncKnowledgeDocumentRepository as KnowledgeDocumentRepository,
+)
 from app.repositories.order.async_order import AsyncOrderRepository as OrderRepository
 from app.repositories.product.async_product import (
     AsyncProductRepository as ProductRepository,
@@ -99,6 +103,21 @@ async def request_order_cancellation(
             "order_id": order_id,
         },
     }
+
+
+@mcp.tool()
+async def search_knowledge(
+    query: str,
+) -> list[dict]:
+    async with AsyncSessionLocal() as db:
+        tool = SearchKnowledgeTool(
+            repository=KnowledgeDocumentRepository(db=db),
+            embedding_client=embedding_client,
+        )
+
+        return await tool.execute(
+            query=query,
+        )
 
 
 if __name__ == "__main__":
