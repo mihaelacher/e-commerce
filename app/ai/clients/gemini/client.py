@@ -57,7 +57,7 @@ class GeminiClient(LLMClient):
                 user_content,
             ]
 
-            response = await self.client.models.generate_content(
+            response = await self.client.aio.models.generate_content(
                 model=self.model,
                 contents=contents,
                 config=types.GenerateContentConfig(
@@ -117,7 +117,7 @@ class GeminiClient(LLMClient):
                 function_response,
             ]
 
-            response = await self.client.models.generate_content(
+            response = await self.client.aio.models.generate_content(
                 model=self.model,
                 contents=contents,
                 config=types.GenerateContentConfig(

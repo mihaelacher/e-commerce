@@ -72,7 +72,7 @@ async def get_order_status(order_id: int) -> dict:
 
 
 @mcp.tool()
-def request_order_cancellation(
+async def request_order_cancellation(
     order_id: int,
 ) -> dict:
     action_id = str(uuid4())
@@ -81,7 +81,7 @@ def request_order_cancellation(
         redis=get_redis(),
     )
 
-    store.save(
+    await store.save(
         PendingAction(
             action_id=action_id,
             name="cancel_order",

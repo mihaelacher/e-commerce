@@ -15,6 +15,10 @@ A FastAPI learning project for an e-commerce backend with product management, ch
 - AI integration with Gemini
 - RAG and AI tool calling
 - Multi-turn AI conversations with Redis
+- Async AI chat and semantic search
+- Order status and cancellation tools
+- Confirmation flow for destructive AI actions
+- MCP server for external AI integrations
 - n8n workflow automation
 - High-value order email notifications
 - AI-generated daily sales summaries

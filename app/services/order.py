@@ -1,3 +1,4 @@
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
@@ -130,6 +131,9 @@ async def cancel_order_async(
         await db.flush()
 
     if requires_refund:
-        refund_order_payment.delay(order.id)
+        await run_in_threadpool(
+                refund_order_payment.delay,
+                order.id,
+            )
 
     return order

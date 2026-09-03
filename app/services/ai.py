@@ -35,14 +35,14 @@ class AIService:
         try:
             tool_definitions = [tool.definition for tool in self.tools.values()]
 
-            stored_state = self.conversation_store.get(conversation_id)
+            stored_state = await self.conversation_store.get(conversation_id)
 
             state = None
 
             if stored_state is not None:
                 state = self.ai_client.deserialize_state(stored_state)
 
-            pending_tool_call = self.conversation_store.get_pending_tool_call(
+            pending_tool_call = await self.conversation_store.get_pending_tool_call(
                 conversation_id
             )
 
@@ -62,7 +62,7 @@ class AIService:
                         "reason": "User rejected the action.",
                     }
 
-                    self.conversation_store.clear_pending_tool_call(conversation_id)
+                    await self.conversation_store.clear_pending_tool_call(conversation_id)
 
                     response = await self.ai_client.chat_with_tool_result(
                         previous_response=previous_response,
@@ -84,7 +84,7 @@ class AIService:
 
                     tool_result = await tool.execute(**arguments.model_dump())
 
-                    self.conversation_store.clear_pending_tool_call(conversation_id)
+                    await self.conversation_store.clear_pending_tool_call(conversation_id)
 
                     response = await self.ai_client.chat_with_tool_result(
                         previous_response=previous_response,
@@ -101,7 +101,7 @@ class AIService:
 
             for _ in range(self.MAX_AGENT_STEPS):
                 if not response.tool_call:
-                    self._save_state(
+                    await self._save_state(
                         conversation_id=conversation_id,
                         state=response.state,
                     )
@@ -156,7 +156,7 @@ class AIService:
                     "requires_confirmation",
                     False,
                 ):
-                    self.conversation_store.save_pending_tool_call(
+                    await self.conversation_store.save_pending_tool_call(
                         conversation_id=conversation_id,
                         tool_call=PendingToolCall(
                             name=tool.name,
@@ -164,7 +164,7 @@ class AIService:
                         ),
                     )
 
-                    self._save_state(
+                    await self._save_state(
                         conversation_id=conversation_id,
                         state=response.state,
                     )
@@ -199,14 +199,14 @@ class AIService:
             )
             raise
 
-    def _save_state(
+    async def _save_state(
         self,
         conversation_id: str,
         state,
     ) -> None:
         serialized_state = self.ai_client.serialize_state(state)
 
-        self.conversation_store.save(
+        await self.conversation_store.save(
             conversation_id,
             serialized_state,
         )

@@ -16,33 +16,33 @@ class FakeConversationStore:
         self.saved_state = None
         self.pending_tool_call = None
 
-    def get(
+    async def get(
         self,
         conversation_id: str,
     ):
         return self.stored_state
 
-    def save(
+    async def save(
         self,
         conversation_id: str,
         state,
     ):
         self.saved_state = state
 
-    def get_pending_tool_call(
+    async def get_pending_tool_call(
         self,
         conversation_id: str,
     ):
         return self.pending_tool_call
 
-    def save_pending_tool_call(
+    async def save_pending_tool_call(
         self,
         conversation_id: str,
         tool_call,
     ):
         self.pending_tool_call = tool_call
 
-    def clear_pending_tool_call(
+    async def clear_pending_tool_call(
         self,
         conversation_id: str,
     ):

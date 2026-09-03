@@ -1,6 +1,6 @@
 import json
 
-from redis import Redis
+from redis.asyncio import Redis
 
 from app.ai.conversation.store import ConversationStore
 from app.ai.models import PendingToolCall
@@ -15,30 +15,30 @@ class RedisConversationStore(ConversationStore):
         self.redis = redis
         self.ttl_seconds = ttl_seconds
 
-    def get(self, conversation_id: str):
-        value = self.redis.get(self._key(conversation_id))
+    async def get(self, conversation_id: str):
+        value = await self.redis.get(self._key(conversation_id))
 
         if value is None:
             return None
 
         return json.loads(value)
 
-    def save(
+    async def save(
         self,
         conversation_id: str,
         state,
     ) -> None:
-        self.redis.set(
+        await self.redis.set(
             self._key(conversation_id),
             json.dumps(state),
             ex=self.ttl_seconds,
         )
 
-    def get_pending_tool_call(
+    async def get_pending_tool_call(
         self,
         conversation_id: str,
     ) -> PendingToolCall | None:
-        value = self.redis.get(self._pending_tool_key(conversation_id))
+        value = await self.redis.get(self._pending_tool_key(conversation_id))
 
         if value is None:
             return None
@@ -50,12 +50,12 @@ class RedisConversationStore(ConversationStore):
             arguments=data["arguments"],
         )
 
-    def save_pending_tool_call(
+    async def save_pending_tool_call(
         self,
         conversation_id: str,
         tool_call: PendingToolCall,
     ) -> None:
-        self.redis.set(
+        await self.redis.set(
             self._pending_tool_key(conversation_id),
             json.dumps(
                 {
@@ -66,11 +66,11 @@ class RedisConversationStore(ConversationStore):
             ex=self.ttl_seconds,
         )
 
-    def clear_pending_tool_call(
+    async def clear_pending_tool_call(
         self,
         conversation_id: str,
     ) -> None:
-        self.redis.delete(self._pending_tool_key(conversation_id))
+        await self.redis.delete(self._pending_tool_key(conversation_id))
 
     @staticmethod
     def _key(conversation_id: str) -> str:

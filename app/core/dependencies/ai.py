@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends
-from redis import Redis
+from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.clients.embedding_base import EmbeddingClient

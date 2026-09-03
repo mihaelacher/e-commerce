@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.pending_actions.store import PendingActionStore
 from app.ai.tools.cancel_order import CancelOrderTool
@@ -8,12 +8,12 @@ from app.exceptions.pending_action import (
 )
 
 
-def approve_pending_action(
-    db: Session,
+async def approve_pending_action(
+    db: AsyncSession,
     store: PendingActionStore,
     action_id: str,
 ) -> dict:
-    action = store.get(action_id)
+    action = await store.get(action_id)
 
     if action is None:
         raise PendingActionNotFoundError(action_id)
@@ -23,10 +23,10 @@ def approve_pending_action(
 
     tool = CancelOrderTool(db=db)
 
-    result = tool.execute(
+    result = await tool.execute(
         **action.arguments,
     )
 
-    store.delete(action_id)
+    await store.delete(action_id)
 
     return result

@@ -5,21 +5,21 @@ from app.ai.models import PendingAction
 
 class PendingActionStore(ABC):
     @abstractmethod
-    def save(
+    async def save(
         self,
         action: PendingAction,
     ) -> None:
         pass
 
     @abstractmethod
-    def get(
+    async def get(
         self,
         action_id: str,
     ) -> PendingAction | None:
         pass
 
     @abstractmethod
-    def delete(
+    async def delete(
         self,
         action_id: str,
     ) -> None:
