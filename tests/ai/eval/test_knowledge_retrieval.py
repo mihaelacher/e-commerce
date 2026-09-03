@@ -10,6 +10,7 @@ from app.repositories.knowledge.async_knowledge_document import (
 )
 
 
+@pytest.mark.eval
 @pytest.mark.asyncio
 async def test_semantic_search_returns_relevant_chunks(
     async_db,
