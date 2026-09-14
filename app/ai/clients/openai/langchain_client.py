@@ -3,7 +3,6 @@ from langchain_openai import ChatOpenAI
 from app.core.config import settings
 
 
-
 class LangChainClient:
     def __init__(self):
         self.client = ChatOpenAI(
