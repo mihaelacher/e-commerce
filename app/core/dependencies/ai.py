@@ -8,6 +8,7 @@ from app.ai.clients.embedding_base import EmbeddingClient
 from app.ai.clients.gemini.client import GeminiClient
 from app.ai.clients.gemini.embedding import GeminiEmbeddingClient
 from app.ai.clients.llm_base import LLMClient
+from app.ai.clients.openai.langchain_client import LangChainClient
 from app.ai.conversation.redis_store import RedisConversationStore
 from app.ai.conversation.store import ConversationStore
 from app.ai.tools.cancel_order import CancelOrderTool
@@ -23,7 +24,8 @@ from app.repositories.order.async_order import AsyncOrderRepository
 from app.repositories.product.async_product import (
     AsyncProductRepository as ProductRepository,
 )
-from app.services.ai import AIService
+from app.services.ai.ai import AIService
+from app.services.ai.langgraph_ai import LangGraphAIService
 
 
 def get_ai_client() -> LLMClient:
@@ -32,6 +34,10 @@ def get_ai_client() -> LLMClient:
 
 def get_embedding_client() -> EmbeddingClient:
     return GeminiEmbeddingClient()
+
+
+def get_langchain_client() -> LangChainClient:
+    return LangChainClient()
 
 
 def get_search_products_tool(
@@ -111,4 +117,35 @@ def get_ai_service(
             cancel_order_tool,
             search_knowledge_tool,
         ],
+    )
+
+
+def get_langgraph_ai_service(
+    langchain_client: Annotated[
+        LangChainClient,
+        Depends(get_langchain_client),
+    ],
+    search_products_tool: Annotated[
+        SearchProductsTool,
+        Depends(get_search_products_tool),
+    ],
+    order_status_tool: Annotated[
+        GetOrderStatusTool,
+        Depends(get_order_status_tool),
+    ],
+    cancel_order_tool: Annotated[
+        CancelOrderTool,
+        Depends(get_cancel_order_tool),
+    ],
+    search_knowledge_tool: Annotated[
+        SearchKnowledgeTool,
+        Depends(get_search_knowledge_tool),
+    ],
+) -> LangGraphAIService:
+    return LangGraphAIService(
+        llm=langchain_client.get_client(),
+        search_products_tool=search_products_tool,
+        search_knowledge_tool=search_knowledge_tool,
+        get_order_status_tool=order_status_tool,
+        cancel_order_tool=cancel_order_tool,
     )

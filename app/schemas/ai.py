@@ -12,6 +12,7 @@ class AIChatRequest(BaseModel):
 class AIChatResponse(BaseModel):
     answer: str
     conversation_id: str
+    requires_confirmation: bool = False
 
 
 class ProductSearchQuery(BaseModel):

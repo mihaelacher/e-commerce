@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     n8n_base_url: str = "http://localhost:5678"
 
     gemini_api_key: str
+    openai_api_key: str
     sentry_dsn: str | None = None
 
     ai_rate_limit_requests: int = 20

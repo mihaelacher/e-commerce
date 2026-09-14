@@ -4,7 +4,7 @@ import pytest
 
 from app.ai.models import LLMResponse, PendingToolCall, ToolCall
 from app.ai.tools.schemas import GetOrderStatusInput, SearchProductsInput
-from app.services.ai import AIService
+from app.services.ai.ai import AIService
 
 
 class FakeConversationStore:
