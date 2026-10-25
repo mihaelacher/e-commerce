@@ -1,15 +1,20 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from uuid import uuid4
 
 from mcp.server import MCPServer
+from mcp.server.mcpserver import Context
+from redis.asyncio import Redis
 
 from app.ai.models import PendingAction
 from app.ai.pending_actions.redis_store import RedisPendingActionStore
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_knowledge import SearchKnowledgeTool
 from app.ai.tools.search_products import SearchProductsTool
+from app.core.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.dependencies.ai import get_embedding_client
-from app.core.dependencies.core import get_redis
 from app.repositories.knowledge.async_knowledge_document import (
     AsyncKnowledgeDocumentRepository as KnowledgeDocumentRepository,
 )
@@ -18,7 +23,30 @@ from app.repositories.product.async_product import (
     AsyncProductRepository as ProductRepository,
 )
 
-mcp = MCPServer("ecommerce")
+
+@dataclass
+class AppContext:
+    redis: Redis
+
+
+@asynccontextmanager
+async def lifespan(
+    server: MCPServer,
+) -> AsyncIterator[AppContext]:
+    redis = Redis.from_url(
+        settings.redis_url,
+        decode_responses=True,
+    )
+
+    try:
+        yield AppContext(redis=redis)
+    finally:
+        await redis.aclose()
+
+mcp = MCPServer(
+    "ecommerce",
+    lifespan=lifespan,
+)
 
 
 class LazyEmbeddingClient:
@@ -78,11 +106,12 @@ async def get_order_status(order_id: int) -> dict:
 @mcp.tool()
 async def request_order_cancellation(
     order_id: int,
+    ctx: Context[AppContext],
 ) -> dict:
     action_id = str(uuid4())
 
     store = RedisPendingActionStore(
-        redis=get_redis(),
+        redis=ctx.request_context.lifespan_context.redis,
     )
 
     await store.save(

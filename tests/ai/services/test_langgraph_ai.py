@@ -1,6 +1,9 @@
+import uuid
+
 import pytest
 from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 
 from app.ai.tools.schemas import (
     CancelOrderInput,
@@ -152,3 +155,100 @@ async def test_langgraph_rejects_action_without_executing_tool():
     assert result.answer == "The action was not completed."
     assert result.requires_confirmation is False
     assert cancel_tool.calls == []
+
+
+@pytest.mark.anyio
+async def test_langgraph_resumes_action_from_persistent_postgres_checkpoint(
+    test_database_url,
+):
+    cancel_tool = FakeTool(
+        "cancel_order",
+        CancelOrderInput,
+        result={"success": True},
+    )
+
+    conversation_id = f"postgres-persistence-{uuid.uuid4()}"
+
+    # First application/service lifetime.
+    async with AsyncPostgresSaver.from_conn_string(
+        test_database_url,
+    ) as checkpointer:
+        await checkpointer.setup()
+
+        service = LangGraphAIService(
+            llm=FakeLLM(
+                [
+                    AIMessage(
+                        content="",
+                        tool_calls=[
+                            {
+                                "name": "cancel_order",
+                                "args": {"order_id": 42},
+                                "id": "persistent-cancel-1",
+                                "type": "tool_call",
+                            }
+                        ],
+                    )
+                ]
+            ),
+            search_products_tool=FakeTool(
+                "search_products",
+                SearchProductsInput,
+            ),
+            search_knowledge_tool=FakeTool(
+                "search_knowledge",
+                SearchKnowledgeInput,
+            ),
+            get_order_status_tool=FakeTool(
+                "get_order_status",
+                GetOrderStatusInput,
+            ),
+            cancel_order_tool=cancel_tool,
+            checkpointer=checkpointer,
+        )
+
+        pending = await service.chat(
+            message="Cancel order 42",
+            conversation_id=conversation_id,
+        )
+
+        assert pending.requires_confirmation is True
+
+    # The first checkpointer is now closed.
+    # Create a completely new checkpointer and service.
+    async with AsyncPostgresSaver.from_conn_string(
+        test_database_url,
+    ) as checkpointer:
+        service = LangGraphAIService(
+            llm=FakeLLM(
+                [
+                    AIMessage(
+                        content="The order was cancelled.",
+                    )
+                ]
+            ),
+            search_products_tool=FakeTool(
+                "search_products",
+                SearchProductsInput,
+            ),
+            search_knowledge_tool=FakeTool(
+                "search_knowledge",
+                SearchKnowledgeInput,
+            ),
+            get_order_status_tool=FakeTool(
+                "get_order_status",
+                GetOrderStatusInput,
+            ),
+            cancel_order_tool=cancel_tool,
+            checkpointer=checkpointer,
+        )
+
+        result = await service.chat(
+            message="",
+            conversation_id=conversation_id,
+            confirm_action=True,
+        )
+
+    assert result.answer == "The order was cancelled."
+    assert result.requires_confirmation is False
+    assert cancel_tool.calls == [{"order_id": 42}]

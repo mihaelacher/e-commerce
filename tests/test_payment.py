@@ -1,4 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
 from decimal import Decimal
+from threading import Barrier, Lock
 
 import pytest
 from sqlalchemy.orm import Session
@@ -497,3 +499,114 @@ def test_payment_cannot_be_created_for_already_paid_order(db):
             idempotency_key="second-payment",
             provider=MockPaymentProvider(),
         )
+
+
+def test_concurrent_create_payment_is_idempotent(
+    db,
+    testing_session_factory,
+):
+    order = create_order(db)
+
+    start_barrier = Barrier(2)
+    idempotency_key = "concurrent-same-key"
+
+    def create_payment_in_separate_session():
+        session = testing_session_factory()
+
+        try:
+            start_barrier.wait()
+
+            payment = create_payment(
+                db=session,
+                order_id=order.id,
+                idempotency_key=idempotency_key,
+                provider=MockPaymentProvider(),
+            )
+
+            return payment.id
+        finally:
+            session.close()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(create_payment_in_separate_session) for _ in range(2)
+        ]
+
+        payment_ids = [future.result() for future in futures]
+
+    assert payment_ids[0] == payment_ids[1]
+
+    db.expire_all()
+
+    payments = (
+        db.query(PaymentModel)
+        .filter(
+            PaymentModel.order_id == order.id,
+            PaymentModel.idempotency_key == idempotency_key,
+        )
+        .all()
+    )
+
+    assert len(payments) == 1
+
+
+def test_concurrent_process_payment_charges_only_once(
+    db,
+    monkeypatch,
+    testing_session_factory,
+):
+    order = create_order(db)
+
+    payment = PaymentModel(
+        order_id=order.id,
+        amount=Decimal("100.00"),
+        status=PaymentStatus.PENDING,
+        provider=PaymentProvider.MOCK,
+        idempotency_key="concurrent-processing-key",
+    )
+
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+
+    payment_id = payment.id
+
+    start_barrier = Barrier(2)
+    charge_lock = Lock()
+    charge_calls = 0
+
+    class CountingProvider:
+        def charge(self, amount, idempotency_key):
+            nonlocal charge_calls
+
+            with charge_lock:
+                charge_calls += 1
+
+            return PaymentResult(
+                success=True,
+                transaction_id="concurrent_transaction_123",
+            )
+
+    provider = CountingProvider()
+
+    monkeypatch.setattr(
+        "app.tasks.payment.get_payment_provider",
+        lambda: provider,
+    )
+
+    monkeypatch.setattr(
+        "app.tasks.payment.SessionLocal",
+        testing_session_factory,
+    )
+
+    def process_in_worker():
+        start_barrier.wait()
+        process_payment(payment_id)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(process_in_worker) for _ in range(2)]
+
+        for future in futures:
+            future.result()
+
+    assert charge_calls == 1

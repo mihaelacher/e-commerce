@@ -41,18 +41,6 @@ def create_order(
         return repository.create(email=email)
 
 
-def _get_order_with_items(
-    repository: OrderRepository,
-    order_id: int,
-) -> OrderModel:
-    order = repository.get_with_items(order_id)
-
-    if order is None:
-        raise OrderNotFoundError(order_id)
-
-    return order
-
-
 def add_order_item(
     db: Session,
     order_id: int,
@@ -64,7 +52,11 @@ def add_order_item(
     order_item_repository = OrderItemRepository(db)
 
     with transaction(db):
-        order = _get_order_with_items(order_repository, order_id)
+        order = order_repository.get_with_items_for_update(order_id)
+
+        if order is None:
+            raise OrderNotFoundError(order_id)
+
         ensure_order_is_pending(order)
 
         product = product_repository.get(product_id)
@@ -109,7 +101,11 @@ def remove_order_item(
     order_item_repository = OrderItemRepository(db)
 
     with transaction(db):
-        order = _get_order_with_items(order_repository, order_id)
+        order = order_repository.get_with_items_for_update(order_id)
+
+        if order is None:
+            raise OrderNotFoundError(order_id)
+
         ensure_order_is_pending(order)
 
         item = order_item_repository.get(item_id)
@@ -130,7 +126,11 @@ def decrease_order_item(
     order_item_repository = OrderItemRepository(db)
 
     with transaction(db):
-        order = _get_order_with_items(order_repository, order_id)
+        order = order_repository.get_with_items_for_update(order_id)
+
+        if order is None:
+            raise OrderNotFoundError(order_id)
+
         ensure_order_is_pending(order)
 
         item = order_item_repository.get(item_id)

@@ -28,6 +28,10 @@ class ProductModel(Base):
             "price > 0",
             name="ck_product_price_positive",
         ),
+        CheckConstraint(
+            "stock >= 0",
+            name="ck_products_stock_non_negative",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True)

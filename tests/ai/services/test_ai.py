@@ -4,6 +4,7 @@ import pytest
 
 from app.ai.models import LLMResponse, PendingToolCall, ToolCall
 from app.ai.tools.schemas import GetOrderStatusInput, SearchProductsInput
+from app.core.dependencies.ai import get_ai_client
 from app.services.ai.ai import AIService
 
 
@@ -769,3 +770,10 @@ async def test_ai_service_does_not_execute_pending_tool_when_rejected():
     assert conversation_store.pending_tool_call is None
 
     assert conversation_store.saved_state == ["final-state"]
+
+
+def test_ai_client_is_reused():
+    first = get_ai_client()
+    second = get_ai_client()
+
+    assert first is second

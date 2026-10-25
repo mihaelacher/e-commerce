@@ -5,7 +5,8 @@ from fastapi.testclient import TestClient
 
 from app.exceptions.checkout import InsufficientStockError
 from app.models.product import ProductModel
-from app.services.checkout import checkout
+from app.repositories.order.sync_order import OrderRepository
+from app.services.checkout import add_order_item, checkout
 
 
 def create_product(
@@ -425,7 +426,7 @@ def test_cannot_checkout_order_twice(client):
     assert response.status_code == 400
 
 
-def test_cannot_modify_completed_order(client):
+def test_cannot_modify_order_after_checkout(client):
     product = create_product(
         client,
         stock=10,
@@ -508,3 +509,53 @@ def test_concurrent_checkouts_cannot_oversell_stock(
 
     assert response.status_code == 200
     assert response.json()["stock"] == 0
+
+
+def test_concurrent_adds_to_same_order_do_not_lose_updates(
+    client,
+    testing_session_factory,
+):
+    product = create_product(client, stock=10)
+    order = create_order(client)
+
+    response = add_product_to_order(
+        client,
+        order["id"],
+        product["id"],
+        1,
+    )
+    assert response.status_code == 201
+
+    start_barrier = Barrier(2)
+
+    def add_in_separate_session():
+        db = testing_session_factory()
+
+        try:
+            start_barrier.wait()
+
+            return add_order_item(
+                db=db,
+                order_id=order["id"],
+                product_id=product["id"],
+                quantity=1,
+            )
+        finally:
+            db.close()
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [executor.submit(add_in_separate_session) for _ in range(2)]
+
+        for future in futures:
+            future.result()
+
+    db = testing_session_factory()
+
+    try:
+        updated_order = OrderRepository(db).get_with_items(order["id"])
+
+        assert updated_order is not None
+        assert len(updated_order.items) == 1
+        assert updated_order.items[0].quantity == 3
+    finally:
+        db.close()

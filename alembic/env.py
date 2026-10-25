@@ -2,9 +2,27 @@ from logging.config import fileConfig
 
 from sqlalchemy import create_engine, pool
 
+import app.models  # noqa: F401
 from alembic import context
 from app.core.config import settings
 from app.core.database import Base
+
+LANGGRAPH_TABLES = {
+    "checkpoints",
+    "checkpoint_writes",
+    "checkpoint_blobs",
+    "checkpoint_migrations",
+}
+
+
+def include_object(
+    object,
+    name,
+    type_,
+    reflected,
+    compare_to,
+):
+    return not (type_ == "table" and name in LANGGRAPH_TABLES)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -44,6 +62,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -63,7 +82,11 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(connection=connection, target_metadata=target_metadata)
+        context.configure(
+            connection=connection,
+            target_metadata=target_metadata,
+            include_object=include_object,
+        )
 
         with context.begin_transaction():
             context.run_migrations()

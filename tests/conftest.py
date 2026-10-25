@@ -1,4 +1,10 @@
+import asyncio
 import os
+import sys
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
 
 import pytest
 import pytest_asyncio
@@ -129,3 +135,8 @@ AsyncTestingSessionLocal = async_sessionmaker(
 async def async_db(test_db):
     async with AsyncTestingSessionLocal() as db:
         yield db
+
+
+@pytest.fixture
+def test_database_url():
+    return TEST_DATABASE_URL

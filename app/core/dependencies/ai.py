@@ -1,6 +1,8 @@
+from functools import lru_cache
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
+from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,14 +30,17 @@ from app.services.ai.ai import AIService
 from app.services.ai.langgraph_ai import LangGraphAIService
 
 
+@lru_cache
 def get_ai_client() -> LLMClient:
     return GeminiClient()
 
 
+@lru_cache
 def get_embedding_client() -> EmbeddingClient:
     return GeminiEmbeddingClient()
 
 
+@lru_cache
 def get_langchain_client() -> LangChainClient:
     return LangChainClient()
 
@@ -120,10 +125,20 @@ def get_ai_service(
     )
 
 
+def get_langgraph_checkpointer(
+    request: Request,
+) -> AsyncPostgresSaver:
+    return request.app.state.langgraph_checkpointer
+
+
 def get_langgraph_ai_service(
     langchain_client: Annotated[
         LangChainClient,
         Depends(get_langchain_client),
+    ],
+    checkpointer: Annotated[
+        AsyncPostgresSaver,
+        Depends(get_langgraph_checkpointer),
     ],
     search_products_tool: Annotated[
         SearchProductsTool,
@@ -148,4 +163,5 @@ def get_langgraph_ai_service(
         search_knowledge_tool=search_knowledge_tool,
         get_order_status_tool=order_status_tool,
         cancel_order_tool=cancel_order_tool,
+        checkpointer=checkpointer,
     )

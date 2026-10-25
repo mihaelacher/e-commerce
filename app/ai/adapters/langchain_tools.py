@@ -12,9 +12,7 @@ def to_langchain_search_products_tool(
     return StructuredTool.from_function(
         coroutine=tool.execute,
         name=tool.name,
-        description=(
-            "Search available products matching the customer's request."
-        ),
+        description=("Search available products matching the customer's request."),
         args_schema=tool.input_model,
     )
 
@@ -39,9 +37,7 @@ def to_langchain_get_order_status_tool(
     return StructuredTool.from_function(
         coroutine=tool.execute,
         name=tool.name,
-        description=(
-            "Get the current status of an order."
-        ),
+        description=("Get the current status of an order."),
         args_schema=tool.input_model,
     )
 

@@ -1,7 +1,7 @@
+from time import perf_counter
 from typing import Annotated, Any, TypedDict
 
 from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage
-from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
@@ -18,9 +18,10 @@ from app.ai.tools.cancel_order import CancelOrderTool
 from app.ai.tools.get_order_status import GetOrderStatusTool
 from app.ai.tools.search_knowledge import SearchKnowledgeTool
 from app.ai.tools.search_products import SearchProductsTool
+from app.core.logging import get_logger
 from app.schemas.ai import AIChatResponse
 
-default_checkpointer = InMemorySaver()
+logger = get_logger(__name__)
 
 
 class AgentState(TypedDict):
@@ -37,7 +38,7 @@ class LangGraphAIService:
         search_knowledge_tool: SearchKnowledgeTool,
         get_order_status_tool: GetOrderStatusTool,
         cancel_order_tool: CancelOrderTool,
-        checkpointer: Any | None = None,
+        checkpointer: Any,
     ):
         self.read_tools = [
             to_langchain_search_products_tool(search_products_tool),
@@ -45,17 +46,13 @@ class LangGraphAIService:
             to_langchain_get_order_status_tool(get_order_status_tool),
         ]
 
-        self.read_tool_names = {
-            tool.name for tool in self.read_tools
-        }
+        self.read_tool_names = {tool.name for tool in self.read_tools}
 
         self.write_tools = [
             to_langchain_cancel_order_tool(cancel_order_tool),
         ]
 
-        self.write_tool_names = {
-            tool.name for tool in self.write_tools
-        }
+        self.write_tool_names = {tool.name for tool in self.write_tools}
 
         self.tools = [
             *self.read_tools,
@@ -64,7 +61,7 @@ class LangGraphAIService:
 
         self.llm_with_tools = llm.bind_tools(self.tools)
 
-        self.checkpointer = checkpointer or default_checkpointer
+        self.checkpointer = checkpointer
 
         self.graph = self._build_graph()
 
@@ -73,13 +70,45 @@ class LangGraphAIService:
         state: AgentState,
     ) -> dict:
         messages = [
-            SystemMessage(
-                content=ECOMMERCE_AGENT_SYSTEM_PROMPT
-            ),
+            SystemMessage(content=ECOMMERCE_AGENT_SYSTEM_PROMPT),
             *state["messages"],
         ]
-        
-        response = await self.llm_with_tools.ainvoke(messages)
+
+        start_time = perf_counter()
+
+        try:
+            response = await self.llm_with_tools.ainvoke(messages)
+
+            usage = getattr(response, "usage_metadata", None) or {}
+
+            logger.info(
+                "llm_call_completed",
+                extra={
+                    "provider": "openai",
+                    "operation": "langgraph_agent",
+                    "duration_ms": round(
+                        (perf_counter() - start_time) * 1000,
+                        2,
+                    ),
+                    "prompt_tokens": usage.get("input_tokens"),
+                    "completion_tokens": usage.get("output_tokens"),
+                    "total_tokens": usage.get("total_tokens"),
+                },
+            )
+
+        except Exception:
+            logger.exception(
+                "llm_call_failed",
+                extra={
+                    "provider": "openai",
+                    "operation": "langgraph_agent",
+                    "duration_ms": round(
+                        (perf_counter() - start_time) * 1000,
+                        2,
+                    ),
+                },
+            )
+            raise
 
         update = {
             "messages": [response],
@@ -149,10 +178,7 @@ class LangGraphAIService:
             "agent",
         )
 
-        return builder.compile(
-            checkpointer=self.checkpointer
-        )
-
+        return builder.compile(checkpointer=self.checkpointer)
 
     def _route_tool_call(
         self,
@@ -178,9 +204,7 @@ class LangGraphAIService:
         if tool_name in self.read_tool_names:
             return "read_tools"
 
-        raise ValueError(
-            f"Unknown tool requested: {tool_name}"
-        )
+        raise ValueError(f"Unknown tool requested: {tool_name}")
 
     def _request_confirmation(
         self,
@@ -218,11 +242,7 @@ class LangGraphAIService:
         conversation_id: str,
         confirm_action: bool | None = None,
     ) -> AIChatResponse:
-        config = {
-            "configurable": {
-                "thread_id": conversation_id
-            }
-        }
+        config = {"configurable": {"thread_id": conversation_id}}
 
         if confirm_action is not None:
             result = await self.graph.ainvoke(
@@ -231,11 +251,7 @@ class LangGraphAIService:
             )
         else:
             result = await self.graph.ainvoke(
-                {
-                    "messages": [
-                        HumanMessage(content=message)
-                    ]
-                },
+                {"messages": [HumanMessage(content=message)]},
                 config=config,
             )
 
