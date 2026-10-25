@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
     )
 
     async with AsyncPostgresSaver.from_conn_string(
-        settings.connection_url,
+        settings.psycopg_connection_url,
     ) as checkpointer:
         await checkpointer.setup()
 

@@ -1,5 +1,6 @@
 import logging
 
+from app.core.config import settings
 from app.core.logging import (
     RequestContextFilter,
     request_id_context,
@@ -34,3 +35,9 @@ def test_request_context_filter_adds_request_id():
         assert record.request_id == "test-request-id"
     finally:
         request_id_context.reset(token)
+
+
+def test_psycopg_connection_url_uses_native_postgresql_scheme():
+    assert settings.psycopg_connection_url.startswith("postgresql://")
+    assert "+psycopg" not in settings.psycopg_connection_url
+    assert "+asyncpg" not in settings.psycopg_connection_url

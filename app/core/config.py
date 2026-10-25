@@ -79,5 +79,13 @@ class Settings(BaseSettings):
     def celery_backend(self) -> str:
         return self.celery_result_backend or self.redis_url
 
+    @computed_field
+    @property
+    def psycopg_connection_url(self) -> str:
+        return (
+            f"postgresql://{self.postgres_user}:{self.postgres_password}"
+            f"@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
+        )
+
 
 settings = Settings()
