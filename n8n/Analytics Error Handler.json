@@ -1,0 +1,118 @@
+{
+  "name": "Analytics Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "a25583e7-0943-44b0-84b6-f5fe4646df7b",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "533a4fef-871a-45e5-ba51-5edc3e6a1dd9",
+              "name": "workflow_name",
+              "value": "={{ $json.workflow.name }}",
+              "type": "string"
+            },
+            {
+              "id": "a5798239-3cb8-404a-be87-6dc361e3d062",
+              "name": "execution_id",
+              "value": "={{ $json.execution.id }}",
+              "type": "string"
+            },
+            {
+              "id": "5f72f4c2-1975-4169-8e33-f4b87d408a37",
+              "name": "error_message",
+              "value": "={{ $json.execution.error.message }}",
+              "type": "string"
+            },
+            {
+              "id": "75b658af-2b77-4897-9353-194152e3d651",
+              "name": "failed_node",
+              "value": "={{ $json.execution.lastNodeExecuted }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "45cb18eb-6335-4215-b5a3-07075e90101e",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fromEmail": "example@gmail.com",
+        "toEmail": "example@gmail.com",
+        "html": "=Analytics workflow failed.\n\nWorkflow: {{ $json.workflow_name }}\nExecution ID: {{ $json.execution_id }}\nFailed node: {{ $json.failed_node }}\nError: {{ $json.error_message }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        416,
+        0
+      ],
+      "id": "3d33eba9-b499-4160-b00c-f8899928b91d",
+      "name": "Send an Email",
+      "webhookId": "1a49ce21-c05c-4ad6-bc96-1e2ebcc7ad3c",
+      "credentials": {
+        "smtp": {
+          "id": "o7Uqwy858u6vSADe",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "c52f8dd2-02b2-4a40-8dfb-9a2f5d6da726",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3d6d9db7527b4a3a10ab9ce8a2b863a78cd0d9bbc08d258337a280bfb496c6c0"
+  },
+  "nodeGroups": [],
+  "id": "VpvxrvOlsgxn47vP",
+  "tags": []
+}

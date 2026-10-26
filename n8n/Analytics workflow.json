@@ -6,6 +6,10 @@
         "rule": {
           "interval": [
             {
+              "field": "weeks",
+              "triggerAtDay": [
+                1
+              ],
               "triggerAtHour": 9
             }
           ]
@@ -13,41 +17,12 @@
       },
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.4,
-      "position": [0, 0],
-      "id": "0e91e7f6-415d-48ed-8227-64f4845c7ac0",
+      "position": [
+        -400,
+        0
+      ],
+      "id": "c9566e1a-9da7-4642-a83c-1d3b0994b2d8",
       "name": "Schedule Trigger"
-    },
-    {
-      "parameters": {
-        "url": "http://api:8000/analytics/sales/daily",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [224, 0],
-      "id": "839bb84c-467a-4d0d-855b-07e8a0a01cf8",
-      "name": "HTTP Request"
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "http://api:8000/ai/chat",
-        "sendBody": true,
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "message",
-              "value": "=Create a concise business summary of today's sales analytics. Highlight the most important results and any notable patterns. Analytics data: {{$json}}"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [448, 0],
-      "id": "43d9dad7-9c56-4f44-bc76-b3f1c538cebc",
-      "name": "HTTP Request1"
     },
     {
       "parameters": {
@@ -60,16 +35,100 @@
       },
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [672, 0],
-      "id": "d2509d0f-d0db-4d2f-939d-5aceec7ee451",
+      "position": [
+        768,
+        0
+      ],
+      "id": "5b2a161d-ee96-408e-aa9a-f9fb989d6a8c",
       "name": "Send an Email",
       "webhookId": "b571d7be-05a4-4111-ba35-d5e7e450b475",
+      "retryOnFail": false,
       "credentials": {
         "smtp": {
-          "id": "HjKxRrzmr02l5dvy",
+          "id": "o7Uqwy858u6vSADe",
           "name": "SMTP account"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst now = new Date();\n\nconst sofiaDate = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'Europe/Sofia',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit',\n}).format(now);\n\nconst [year, month, day] = sofiaDate.split('-').map(Number);\n\nconst today = new Date(Date.UTC(year, month - 1, day));\nconst weekday = today.getUTCDay();\n\n// Monday = 0, Sunday = 6\nconst daysSinceMonday = (weekday + 6) % 7;\n\nconst thisMonday = new Date(today);\nthisMonday.setUTCDate(today.getUTCDate() - daysSinceMonday);\n\nconst previousMonday = new Date(thisMonday);\npreviousMonday.setUTCDate(thisMonday.getUTCDate() - 7);\n\nconst previousSunday = new Date(thisMonday);\npreviousSunday.setUTCDate(thisMonday.getUTCDate() - 1);\n\nconst formatDate = (d) => d.toISOString().slice(0, 10);\n\nreturn [{\n  json: {\n    from_date: formatDate(previousMonday),\n    to_date: formatDate(previousSunday),\n    report_type: 'weekly_sales',\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -192,
+        0
+      ],
+      "id": "fecf1f88-25fa-4832-ad59-75a19a5293ed",
+      "name": "Calculate Previous Week"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst items = $input.all();\nconst records = items.map(item => item.json);\n\nconst period = $('Calculate Previous Week').first().json;\n\nfor (const r of records) {\n  if (\n    typeof r.date !== 'string' ||\n    !/^\\d{4}-\\d{2}-\\d{2}$/.test(r.date) ||\n    !Number.isInteger(r.orders) ||\n    !Number.isInteger(r.units_sold) ||\n    typeof r.revenue !== 'number' ||\n    !Number.isFinite(r.revenue) ||\n    r.orders < 0 ||\n    r.units_sold < 0 ||\n    r.revenue < 0\n  ) {\n    throw new Error(\n      `Invalid Sales record: ${JSON.stringify(r)}`\n    );\n  }\n}\n\nconst totals = records.reduce(\n  (acc, r) => {\n    acc.orders += r.orders;\n    acc.units_sold += r.units_sold;\n    acc.revenue += r.revenue;\n    return acc;\n  },\n  { orders: 0, units_sold: 0, revenue: 0 }\n);\n\nconst bestRevenueDay = records.reduce(\n  (best, r) => !best || r.revenue > best.revenue ? r : best,\n  null\n);\n\nconst bestOrdersDay = records.reduce(\n  (best, r) => !best || r.orders > best.orders ? r : best,\n  null\n);\n\nreturn [{\n  json: {\n    report_type: 'weekly_sales',\n    period_start: period.from_date,\n    period_end: period.to_date,\n    days_with_data: records.length,\n    no_sales: records.length === 0 || totals.orders === 0,\n    totals: {\n      orders: totals.orders,\n      units_sold: totals.units_sold,\n      revenue: Number(totals.revenue.toFixed(2)),\n    },\n    best_revenue_day: bestRevenueDay\n      ? {\n          date: bestRevenueDay.date,\n          revenue: bestRevenueDay.revenue,\n        }\n      : null,\n    best_orders_day: bestOrdersDay\n      ? {\n          date: bestOrdersDay.date,\n          orders: bestOrdersDay.orders,\n        }\n      : null,\n    daily_sales: records,\n  },\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        272,
+        0
+      ],
+      "id": "1824f3f8-1e1f-4514-960b-99b6ce75c74f",
+      "name": "Validate Daily Sales"
+    },
+    {
+      "parameters": {
+        "url": "http://api:8000/analytics/sales/daily",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "from",
+              "value": "={{ $json.from_date }}"
+            },
+            {
+              "name": "to",
+              "value": "={{ $json.to_date }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        16,
+        0
+      ],
+      "id": "c9632bff-a0d1-4b83-8e8a-0e7235ebfa41",
+      "name": "Get analytics report",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/ai/v1/chat",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "=\n={{\n  'Write a concise weekly business sales report in Bulgarian. ' +\n  'Reporting period: ' + $json.period_start + ' to ' + $json.period_end + '. ' +\n  'If no_sales is true, explicitly state that no sales were recorded. ' +\n  'Otherwise, summarize total orders, units sold, and revenue. ' +\n  'Identify the day with the highest revenue and the day with the most orders when available. ' +\n  'Only mention trends when supported by comparative data. ' +\n  'Do not invent metrics or conclusions. ' +\n  'Use a clear, professional, email-friendly format. ' +\n  'Data: ' + JSON.stringify({\n    no_sales: $json.no_sales,\n    totals: $json.totals,\n    best_revenue_day: $json.best_revenue_day,\n    best_orders_day: $json.best_orders_day,\n    days_with_data: $json.days_with_data\n  })\n}}\n"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        512,
+        0
+      ],
+      "id": "68b759bb-58e8-49f4-a042-50a6da2fb248",
+      "name": "Call AI model",
+      "retryOnFail": true
     }
   ],
   "pinData": {},
@@ -78,25 +137,48 @@
       "main": [
         [
           {
-            "node": "HTTP Request",
+            "node": "Calculate Previous Week",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "HTTP Request": {
+    "Calculate Previous Week": {
       "main": [
         [
           {
-            "node": "HTTP Request1",
+            "node": "Get analytics report",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "HTTP Request1": {
+    "Validate Daily Sales": {
+      "main": [
+        [
+          {
+            "node": "Call AI model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get analytics report": {
+      "main": [
+        [
+          {
+            "node": "Validate Daily Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Call AI model": {
       "main": [
         [
           {
@@ -111,14 +193,18 @@
   "active": false,
   "settings": {
     "executionOrder": "v1",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false,
+    "errorWorkflow": "VpvxrvOlsgxn47vP"
   },
-  "versionId": "d486b49f-37ab-4078-938d-5dfb07790b13",
+  "versionId": "7ba92f70-7f68-4461-b71a-e56ba47757cb",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "3d6d9db7527b4a3a10ab9ce8a2b863a78cd0d9bbc08d258337a280bfb496c6c0"
   },
   "nodeGroups": [],
-  "id": "9zCb9An8sCNi3NgS",
+  "id": "9zhom5uJdd7GGhcK",
   "tags": []
 }
