@@ -7,9 +7,7 @@
           "interval": [
             {
               "field": "weeks",
-              "triggerAtDay": [
-                1
-              ],
+              "triggerAtDay": [1],
               "triggerAtHour": 9
             }
           ]
@@ -17,10 +15,7 @@
       },
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.4,
-      "position": [
-        -400,
-        0
-      ],
+      "position": [-400, 0],
       "id": "c9566e1a-9da7-4642-a83c-1d3b0994b2d8",
       "name": "Schedule Trigger"
     },
@@ -28,17 +23,14 @@
       "parameters": {
         "fromEmail": "example@gmail.com",
         "toEmail": "example@gmail.com",
-        "subject": "Daily Sales AI Summary",
+        "subject": "Weekly Sales AI Summary",
         "emailFormat": "both",
-        "text": "=Daily Sales Report\n\n{{$json.answer}}",
+        "text": "=Weekly Sales Report\n\n{{$json.answer}}",
         "options": {}
       },
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [
-        768,
-        0
-      ],
+      "position": [768, 0],
       "id": "5b2a161d-ee96-408e-aa9a-f9fb989d6a8c",
       "name": "Send an Email",
       "webhookId": "b571d7be-05a4-4111-ba35-d5e7e450b475",
@@ -56,10 +48,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        -192,
-        0
-      ],
+      "position": [-192, 0],
       "id": "fecf1f88-25fa-4832-ad59-75a19a5293ed",
       "name": "Calculate Previous Week"
     },
@@ -69,10 +58,7 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [
-        272,
-        0
-      ],
+      "position": [272, 0],
       "id": "1824f3f8-1e1f-4514-960b-99b6ce75c74f",
       "name": "Validate Daily Sales"
     },
@@ -96,10 +82,7 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [
-        16,
-        0
-      ],
+      "position": [16, 0],
       "id": "c9632bff-a0d1-4b83-8e8a-0e7235ebfa41",
       "name": "Get analytics report",
       "retryOnFail": true,
@@ -122,10 +105,7 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
-      "position": [
-        512,
-        0
-      ],
+      "position": [512, 0],
       "id": "68b759bb-58e8-49f4-a042-50a6da2fb248",
       "name": "Call AI model",
       "retryOnFail": true

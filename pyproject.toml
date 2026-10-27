@@ -36,6 +36,7 @@ dev = [
 ]
 
 [tool.pytest.ini_options]
+addopts = "-m 'not eval'"
 markers = [
-    "eval: tests that call a real LLM and evaluate AI behavior",
+    "eval: tests that call live AI providers and may incur cost",
 ]

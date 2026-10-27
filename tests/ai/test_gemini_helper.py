@@ -1,6 +1,8 @@
 import httpx
 import pytest
 
+from app.ai.clients.gemini.client import GeminiClient
+from app.ai.clients.gemini.embedding import GeminiEmbeddingClient
 from app.ai.clients.gemini.helper import with_retry
 from app.exceptions.ai import AIProviderUnavailableError
 
@@ -31,3 +33,14 @@ def test_with_retry_raises_application_error_after_exhaustion(monkeypatch):
 
     with pytest.raises(AIProviderUnavailableError):
         with_retry(request)
+
+
+@pytest.mark.parametrize(
+    "client_class",
+    [GeminiClient, GeminiEmbeddingClient],
+)
+def test_gemini_clients_require_provider_key(monkeypatch, client_class):
+    monkeypatch.setattr("app.core.config.settings.gemini_api_key", None)
+
+    with pytest.raises(AIProviderUnavailableError, match="GEMINI_API_KEY"):
+        client_class()

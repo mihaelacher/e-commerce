@@ -42,3 +42,13 @@ A FastAPI learning project for an e-commerce backend with product management, ch
 ```bash
 docker compose up -d --build
 ```
+
+## Tests and AI evaluations
+
+Live evaluations require a configured `OPENAI_API_KEY`, PostgreSQL with pgvector,
+and a reachable test database. Tool-selection evaluation reports tool,
+argument, and overall case accuracy. Product retrieval reports Precision@5,
+Recall@5, MRR@5, and no-answer accuracy against a small isolated candidate
+catalog. Precision, recall, and MRR are averaged over queries with expected
+matches; no-answer queries are reported separately. Knowledge retrieval is also
+checked against expected policy evidence. `GEMINI_API_KEY` is not needed for these OpenAI evaluations; it is required only when using the Gemini-backed application clients.

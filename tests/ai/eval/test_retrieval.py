@@ -1,64 +1,65 @@
+import json
+
 import pytest
-from deepeval.metrics import ContextualRelevancyMetric
-from deepeval.models import GeminiModel
-from deepeval.test_case import LLMTestCase
 
-from app.ai.clients.gemini.embedding import GeminiEmbeddingClient
 from app.ai.tools.search_products import SearchProductsTool
-from app.core.config import settings
-from app.core.database import SessionLocal
-from app.repositories.product.sync_product import ProductRepository
+from app.core.dependencies.ai import get_embedding_client
+from app.models.product import ProductModel
+from app.repositories.product.async_product import (
+    AsyncProductRepository as ProductRepository,
+)
+from app.services.embeddings import build_product_text
+from scripts.seed.product_data import PRODUCTS
 from tests.ai.eval.cases import RETRIEVAL_CASES
+from tests.ai.eval.metrics import retrieval_metrics
 
 
-# TODO: deeleval library added
-# not tested yet, since daily rate exceeded for Gemini API,
-# need to wait for next day to test it
 @pytest.mark.eval
-@pytest.mark.parametrize("case", RETRIEVAL_CASES)
-def test_product_retrieval(case):
-    with SessionLocal() as db:
+@pytest.mark.asyncio
+async def test_product_retrieval_eval(async_db):
+    embedding_client = get_embedding_client()
+    products_by_name = {product["name"]: product for product in PRODUCTS}
+
+    result_cases = []
+    for case in RETRIEVAL_CASES:
+        candidates = [products_by_name[name] for name in case["candidate_products"]]
+
+        for candidate in candidates:
+            product = ProductModel(
+                name=candidate["name"],
+                description=candidate["description"],
+                price=candidate["price"],
+                stock=candidate["stock"],
+            )
+            product.embedding = await embedding_client.embed_async(
+                build_product_text(product)
+            )
+            async_db.add(product)
+
+        await async_db.flush()
+
         tool = SearchProductsTool(
-            embedding_client=GeminiEmbeddingClient(),
-            product_repository=ProductRepository(db),
+            embedding_client=embedding_client,
+            product_repository=ProductRepository(async_db),
         )
 
-        results = tool.execute(
+        retrieved = await tool.execute(
             query=case["query"],
         )
 
-    retrieval_context = [
-        (
-            f"Product: {product['name']}. "
-            f"Description: {product['description']}. "
-            f"Price: {product['price']}. "
-            f"Stock: {product['stock']}."
+        result_cases.append(
+            {
+                "query": case["query"],
+                "expected": case["expected_products"],
+                "retrieved": [product["name"] for product in retrieved],
+            }
         )
-        for product in results
-    ]
+        await async_db.rollback()
 
-    judge = GeminiModel(
-        model="gemini-3.6-flash",
-        api_key=settings.gemini_api_key,
-        temperature=0,
-    )
+    metrics = retrieval_metrics(result_cases, k=5)
+    print(json.dumps(metrics, ensure_ascii=False, indent=2))
 
-    test_case = LLMTestCase(
-        input=case["query"],
-        actual_output="Product search results",
-        retrieval_context=retrieval_context,
-    )
-
-    metric = ContextualRelevancyMetric(
-        threshold=0.7,
-        model=judge,
-        include_reason=True,
-    )
-
-    metric.measure(test_case)
-
-    print(f"Query: {case['query']}")
-    print(f"Score: {metric.score}")
-    print(f"Reason: {metric.reason}")
-
-    assert metric.score >= 0.7
+    assert metrics["precision_at_k"] >= 0.2
+    assert metrics["recall_at_k"] >= 0.9
+    assert metrics["mrr_at_k"] >= 0.9
+    assert metrics["no_answer_accuracy"] == 1.0

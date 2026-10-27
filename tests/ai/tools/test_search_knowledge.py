@@ -52,6 +52,15 @@ class MultipleResultsKnowledgeRepository(FakeKnowledgeRepository):
         return [*results, (results[0][0], 0.5)]
 
 
+class EmptyKnowledgeRepository:
+    async def semantic_search(
+        self,
+        query_embedding: list[float],
+        limit: int = 5,
+    ):
+        return []
+
+
 @pytest.mark.asyncio
 async def test_search_knowledge_returns_relevant_chunks():
     tool = SearchKnowledgeTool(
@@ -85,3 +94,15 @@ async def test_search_knowledge_excludes_irrelevant_chunks():
 
     assert len(result) == 1
     assert result[0]["distance"] == 0.18
+
+
+@pytest.mark.asyncio
+async def test_search_knowledge_returns_empty_list_when_no_sources_match():
+    tool = SearchKnowledgeTool(
+        repository=EmptyKnowledgeRepository(),
+        embedding_client=FakeEmbeddingClient(),
+    )
+
+    result = await tool.execute(query="How many days do I have to return a product?")
+
+    assert result == []

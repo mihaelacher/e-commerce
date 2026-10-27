@@ -14,14 +14,25 @@ class SearchProductsTool:
 
     definition: ClassVar[dict[str, object]] = {
         "name": name,
-        "description": "Search available products matching the customer's request.",
+        "description": (
+            "Search the product catalog whenever the customer wants a product, "
+            "even if they describe a need indirectly instead of naming a category "
+            "(for example, 'something cheap for listening to music'). Put the "
+            "described need or use case in query. Pass any stated budget or price "
+            "limit as min_price or max_price; do not skip the search because the "
+            "budget seems unusually low (for example, 'a laptop under 1' uses "
+            "query='laptop' and max_price=1). Also use for product comparisons "
+            "and requests to show, list, or browse the catalog."
+        ),
         "parameters": {
             "type": "object",
             "properties": {
                 "query": {
                     "type": "string",
                     "description": (
-                        "The semantic product search query without price constraints."
+                        "Product category, need, or use case to search for; omit "
+                        "price constraints because they belong in min_price or "
+                        "max_price."
                     ),
                 },
                 "min_price": {

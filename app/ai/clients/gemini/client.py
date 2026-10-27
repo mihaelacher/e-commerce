@@ -9,6 +9,7 @@ from app.ai.clients.llm_base import LLMClient
 from app.ai.models import LLMResponse, ToolCall
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.exceptions.ai import AIProviderUnavailableError
 
 logger = get_logger(__name__)
 
@@ -27,6 +28,11 @@ SYSTEM_INSTRUCTION = (
 
 class GeminiClient(LLMClient):
     def __init__(self) -> None:
+        if not settings.gemini_api_key:
+            raise AIProviderUnavailableError(
+                "GEMINI_API_KEY must be configured to use the Gemini provider."
+            )
+
         self.model = "gemini-3.6-flash"
 
         self.client = genai.Client(

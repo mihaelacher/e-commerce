@@ -48,8 +48,13 @@ EVAL_CASES = [
     },
     {
         "message": "Can I cancel order 12?",
-        "expected_tool": None,
-        "expected_arguments": None,
+        "expected_tool": "search_knowledge",
+        "expected_arguments": {},
+        "expected_query_terms": [
+            "cancel",
+            "cancellation",
+            "policy",
+        ],
     },
     {
         "message": "Don't cancel order 12. Just tell me its status.",
@@ -142,11 +147,36 @@ RETRIEVAL_CASES = [
         "expected_products": [
             "Wireless Headphones",
         ],
+        "candidate_products": [
+            "Wireless Headphones",
+            "Gaming Headset",
+            "Bluetooth Earbuds",
+            "Studio Headphones",
+            "Wireless Mouse",
+        ],
     },
     {
         "query": "laptop stand",
         "expected_products": [
             "Laptop Stand",
+        ],
+        "candidate_products": [
+            "Laptop Stand",
+            "Laptop Backpack",
+            "Desk Mat",
+            "USB-C Hub",
+            "Mechanical Keyboard",
+        ],
+    },
+    {
+        "query": "industrial refrigerator",
+        "expected_products": [],
+        "candidate_products": [
+            "Wireless Mouse",
+            "Desk Lamp",
+            "USB-C Cable",
+            "Laptop Backpack",
+            "Wireless Headphones",
         ],
     },
 ]

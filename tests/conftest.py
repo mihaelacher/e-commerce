@@ -133,8 +133,11 @@ AsyncTestingSessionLocal = async_sessionmaker(
 
 @pytest_asyncio.fixture
 async def async_db(test_db):
-    async with AsyncTestingSessionLocal() as db:
-        yield db
+    try:
+        async with AsyncTestingSessionLocal() as db:
+            yield db
+    finally:
+        await async_engine.dispose()
 
 
 @pytest.fixture

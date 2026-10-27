@@ -8,8 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.clients.embedding_base import EmbeddingClient
 from app.ai.clients.gemini.client import GeminiClient
-from app.ai.clients.gemini.embedding import GeminiEmbeddingClient
 from app.ai.clients.llm_base import LLMClient
+from app.ai.clients.openai.embedding import OpenAIEmbeddingClient
 from app.ai.clients.openai.langchain_client import LangChainClient
 from app.ai.conversation.redis_store import RedisConversationStore
 from app.ai.conversation.store import ConversationStore
@@ -37,7 +37,7 @@ def get_ai_client() -> LLMClient:
 
 @lru_cache
 def get_embedding_client() -> EmbeddingClient:
-    return GeminiEmbeddingClient()
+    return OpenAIEmbeddingClient()
 
 
 @lru_cache

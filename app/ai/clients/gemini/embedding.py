@@ -7,12 +7,18 @@ from app.ai.clients.embedding_base import EmbeddingClient
 from app.ai.clients.gemini.helper import with_retry, with_retry_async
 from app.core.config import settings
 from app.core.logging import get_logger
+from app.exceptions.ai import AIProviderUnavailableError
 
 logger = get_logger(__name__)
 
 
 class GeminiEmbeddingClient(EmbeddingClient):
     def __init__(self) -> None:
+        if not settings.gemini_api_key:
+            raise AIProviderUnavailableError(
+                "GEMINI_API_KEY must be configured to use Gemini embeddings."
+            )
+
         self.model = "gemini-embedding-2"
         self.client = genai.Client(
             api_key=settings.gemini_api_key,
@@ -29,7 +35,7 @@ class GeminiEmbeddingClient(EmbeddingClient):
                 model=self.model,
                 contents=text,
                 config=types.EmbedContentConfig(
-                    output_dimensionality=768,
+                    output_dimensionality=settings.embedding_dimensions,
                 ),
             )
 
@@ -70,7 +76,7 @@ class GeminiEmbeddingClient(EmbeddingClient):
                 model=self.model,
                 contents=text,
                 config=types.EmbedContentConfig(
-                    output_dimensionality=768,
+                    output_dimensionality=settings.embedding_dimensions,
                 ),
             )
 
