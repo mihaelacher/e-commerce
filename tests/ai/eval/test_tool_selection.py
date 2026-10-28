@@ -40,13 +40,16 @@ async def test_tool_selection_eval():
                 HumanMessage(content=case["message"]),
             ]
         )
-        tool_call = response.tool_calls[0] if response.tool_calls else None
-
         results.append(
             {
                 **case,
-                "actual_tool": tool_call["name"] if tool_call else None,
-                "actual_arguments": tool_call["args"] if tool_call else None,
+                "actual_tool_calls": [
+                    {
+                        "name": tool_call["name"],
+                        "arguments": tool_call["args"],
+                    }
+                    for tool_call in response.tool_calls
+                ],
             }
         )
 

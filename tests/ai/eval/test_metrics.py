@@ -7,29 +7,40 @@ def test_tool_selection_metrics_score_tools_arguments_and_queries():
     results = [
         {
             "message": "Find headphones under 100",
-            "expected_tool": "search_products",
-            "actual_tool": "search_products",
-            "expected_arguments": {"max_price": 100},
-            "actual_arguments": {
-                "query": "headphones",
-                "max_price": 100,
-            },
-            "expected_query_terms": ["headphones"],
+            "expected_tool_calls": [
+                {
+                    "name": "search_products",
+                    "arguments": {"max_price": 100},
+                    "expected_query_terms": ["headphones"],
+                }
+            ],
+            "actual_tool_calls": [
+                {
+                    "name": "search_products",
+                    "arguments": {"query": "headphones", "max_price": 100},
+                }
+            ],
         },
         {
             "message": "Find a laptop",
-            "expected_tool": "search_products",
-            "actual_tool": "search_products",
-            "expected_arguments": {},
-            "actual_arguments": {"query": "laptop"},
-            "expected_query_terms": ["laptop"],
+            "expected_tool_calls": [
+                {
+                    "name": "search_products",
+                    "arguments": {},
+                    "expected_query_terms": ["laptop"],
+                }
+            ],
+            "actual_tool_calls": [
+                {
+                    "name": "search_products",
+                    "arguments": {"query": "laptop"},
+                }
+            ],
         },
         {
             "message": "Tell me a joke",
-            "expected_tool": None,
-            "actual_tool": None,
-            "expected_arguments": None,
-            "actual_arguments": None,
+            "expected_tool_calls": [],
+            "actual_tool_calls": [],
         },
     ]
 
@@ -47,10 +58,18 @@ def test_tool_selection_metrics_report_wrong_arguments():
         [
             {
                 "message": "Find headphones under 100",
-                "expected_tool": "search_products",
-                "actual_tool": "search_products",
-                "expected_arguments": {"max_price": 100},
-                "actual_arguments": {"max_price": 200},
+                "expected_tool_calls": [
+                    {
+                        "name": "search_products",
+                        "arguments": {"max_price": 100},
+                    }
+                ],
+                "actual_tool_calls": [
+                    {
+                        "name": "search_products",
+                        "arguments": {"max_price": 200},
+                    }
+                ],
             }
         ]
     )
@@ -59,6 +78,77 @@ def test_tool_selection_metrics_report_wrong_arguments():
     assert metrics["argument_accuracy"] == 0.0
     assert metrics["case_accuracy"] == 0.0
     assert len(metrics["failures"]) == 1
+
+
+def test_tool_selection_metrics_score_multiple_tools_and_arguments():
+    metrics = tool_selection_metrics(
+        [
+            {
+                "message": "Show products and check order status",
+                "expected_tool_calls": [
+                    {
+                        "name": "search_products",
+                        "arguments": {"query": "products"},
+                    },
+                    {
+                        "name": "get_order_status",
+                        "arguments": {"order_id": 12},
+                    },
+                ],
+                "actual_tool_calls": [
+                    {
+                        "name": "get_order_status",
+                        "arguments": {"order_id": 12},
+                    },
+                    {
+                        "name": "search_products",
+                        "arguments": {"query": "products"},
+                    },
+                ],
+            }
+        ]
+    )
+
+    assert metrics["tool_selection_accuracy"] == 1.0
+    assert metrics["argument_accuracy"] == 1.0
+    assert metrics["case_accuracy"] == 1.0
+    assert metrics["failures"] == []
+
+
+def test_tool_selection_metrics_fail_when_expected_tool_is_missing():
+    metrics = tool_selection_metrics(
+        [
+            {
+                "message": "Show products and check order status",
+                "expected_tool_calls": [
+                    {
+                        "name": "search_products",
+                        "arguments": {"query": "products"},
+                    },
+                    {
+                        "name": "get_order_status",
+                        "arguments": {"order_id": 12},
+                    },
+                ],
+                "actual_tool_calls": [
+                    {
+                        "name": "get_order_status",
+                        "arguments": {"order_id": 12},
+                    }
+                ],
+            }
+        ]
+    )
+
+    assert metrics["tool_selection_accuracy"] == 0.0
+    assert metrics["argument_accuracy"] == 0.0
+    assert metrics["case_accuracy"] == 0.0
+    assert metrics["failures"][0]["actual_tool_calls"] == [
+        {
+            "name": "get_order_status",
+            "arguments": {"order_id": 12},
+        }
+    ]
 
 
 def test_retrieval_metrics_calculate_recall_mrr_and_no_answer_accuracy():

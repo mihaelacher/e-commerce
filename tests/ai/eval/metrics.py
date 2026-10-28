@@ -12,41 +12,71 @@ def tool_selection_metrics(results: Sequence[dict]) -> dict:
     failures = []
 
     for result in results:
-        expected_tool = result["expected_tool"]
-        actual_tool = result["actual_tool"]
-        expected_arguments = result["expected_arguments"] or {}
-        actual_arguments = result["actual_arguments"] or {}
+        expected_tool_calls = result["expected_tool_calls"]
+        actual_tool_calls = result["actual_tool_calls"]
+        expected_tools = sorted(call["name"] for call in expected_tool_calls)
+        actual_tools = sorted(call["name"] for call in actual_tool_calls)
+        is_tool_correct = actual_tools == expected_tools
 
-        is_tool_correct = actual_tool == expected_tool
-        is_arguments_correct = all(
-            actual_arguments.get(key) == value
-            for key, value in expected_arguments.items()
+        has_expected_arguments = any(
+            call.get("arguments") or call.get("expected_query_terms")
+            for call in expected_tool_calls
         )
+        is_arguments_correct = True
+        remaining_actual_calls = list(actual_tool_calls)
 
-        expected_query_terms = result.get("expected_query_terms", [])
-        actual_query = str(actual_arguments.get("query", "")).lower()
-        is_query_correct = not expected_query_terms or any(
-            term.lower() in actual_query for term in expected_query_terms
-        )
+        for expected_call in expected_tool_calls:
+            actual_call_index = next(
+                (
+                    index
+                    for index, call in enumerate(remaining_actual_calls)
+                    if call["name"] == expected_call["name"]
+                ),
+                None,
+            )
+            if actual_call_index is None:
+                is_arguments_correct = False
+                continue
+
+            actual_call = remaining_actual_calls.pop(actual_call_index)
+            expected_arguments = expected_call.get("arguments", {})
+            actual_arguments = actual_call.get("arguments") or {}
+            expected_query_terms = expected_call.get(
+                "expected_query_terms",
+                [],
+            )
+            actual_query = str(actual_arguments.get("query", "")).lower()
+
+            if not all(
+                actual_arguments.get(key) == value
+                for key, value in expected_arguments.items()
+            ):
+                is_arguments_correct = False
+
+            if expected_query_terms and not any(
+                term.lower() in actual_query for term in expected_query_terms
+            ):
+                is_arguments_correct = False
+
+        if remaining_actual_calls:
+            is_tool_correct = False
 
         if is_tool_correct:
             tool_correct += 1
 
-        if expected_arguments or expected_query_terms:
+        if has_expected_arguments:
             argument_cases += 1
-            if is_arguments_correct and is_query_correct:
+            if is_arguments_correct:
                 arguments_correct += 1
 
-        if is_tool_correct and is_arguments_correct and is_query_correct:
+        if is_tool_correct and is_arguments_correct:
             case_correct += 1
         else:
             failures.append(
                 {
                     "message": result["message"],
-                    "expected_tool": expected_tool,
-                    "actual_tool": actual_tool,
-                    "expected_arguments": expected_arguments,
-                    "actual_arguments": actual_arguments,
+                    "expected_tool_calls": expected_tool_calls,
+                    "actual_tool_calls": actual_tool_calls,
                 }
             )
 

@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -11,7 +11,7 @@ class ToolCall:
 @dataclass
 class LLMResponse:
     content: str | None = None
-    tool_call: ToolCall | None = None
+    tool_calls: list[ToolCall] = field(default_factory=list)
     state: object | None = None
     conversation_ref: str | None = None
 

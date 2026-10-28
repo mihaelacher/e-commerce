@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from app.ai.clients.embedding_base import EmbeddingClient
 from app.ai.tools.schemas import SearchProductsInput
@@ -12,17 +12,16 @@ class SearchProductsTool:
     input_model = SearchProductsInput
     requires_confirmation = False
 
-    definition: ClassVar[dict[str, object]] = {
+    definition: ClassVar[dict[str, Any]] = {
         "name": name,
         "description": (
-            "Search the product catalog whenever the customer wants a product, "
-            "even if they describe a need indirectly instead of naming a category "
-            "(for example, 'something cheap for listening to music'). Put the "
-            "described need or use case in query. Pass any stated budget or price "
-            "limit as min_price or max_price; do not skip the search because the "
-            "budget seems unusually low (for example, 'a laptop under 1' uses "
-            "query='laptop' and max_price=1). Also use for product comparisons "
-            "and requests to show, list, or browse the catalog."
+            "Search the store's product inventory for product-finding requests. "
+            "Treat a first-person statement of need as a request for product "
+            "recommendations, even without an explicit 'find' or 'search' command "
+            "or a named product category; do not answer only with general advice. "
+            "Use the described need or use case as the query. Apply concrete "
+            "price limits as min_price or max_price, even when the limit seems "
+            "unusually low. Do not guess which products are in the store."
         ),
         "parameters": {
             "type": "object",

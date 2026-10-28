@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,12 +11,14 @@ class CancelOrderTool:
     input_model = CancelOrderInput
     requires_confirmation = True
 
-    definition: ClassVar[dict] = {
+    definition: ClassVar[dict[str, Any]] = {
         "name": name,
         "description": (
-            "Cancel an existing customer order. "
-            "Use this tool when the customer explicitly requests "
-            "cancellation of an order."
+            "Request cancellation of an existing order only when the customer "
+            "clearly asks to cancel it and provides the order ID. Do not use for "
+            "questions about whether cancellation is possible or allowed; use "
+            "policy search for those. The application requires customer "
+            "confirmation before executing cancellation."
         ),
         "parameters": {
             "type": "object",

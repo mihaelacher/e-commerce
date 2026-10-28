@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from app.ai.tools.schemas import GetOrderStatusInput
 from app.repositories.order.async_order import AsyncOrderRepository as OrderRepository
@@ -9,9 +9,15 @@ class GetOrderStatusTool:
     input_model = GetOrderStatusInput
     requires_confirmation = False
 
-    definition: ClassVar[dict[str, object]] = {
+    definition: ClassVar[dict[str, Any]] = {
         "name": name,
-        "description": "Get the current status of an order.",
+        "description": (
+            "Retrieve the current status of a specific order when the customer "
+            "asks for its status or asks whether that order is eligible for an "
+            "action. Requires the order ID. For policy-dependent eligibility, "
+            "combine this with search_knowledge; order status alone does not "
+            "determine the policy."
+        ),
         "parameters": {
             "type": "object",
             "properties": {

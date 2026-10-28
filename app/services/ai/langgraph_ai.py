@@ -28,9 +28,13 @@ class AgentState(TypedDict):
     messages: Annotated[list[AnyMessage], add_messages]
     answer: str
     requires_confirmation: bool
+    tool_call_count: int
 
 
 class LangGraphAIService:
+    MAX_TOOL_CALLS_PER_BATCH = 5
+    MAX_TOOL_CALLS_PER_REQUEST = 10
+
     def __init__(
         self,
         llm,
@@ -129,6 +133,11 @@ class LangGraphAIService:
         )
 
         builder.add_node(
+            "count_tool_calls",
+            self._count_tool_calls,
+        )
+
+        builder.add_node(
             "read_tools",
             ToolNode(self.read_tools),
         )
@@ -154,13 +163,18 @@ class LangGraphAIService:
         )
 
         builder.add_conditional_edges(
-            "agent",
+            "count_tool_calls",
             self._route_tool_call,
             {
                 "read_tools": "read_tools",
                 "confirmation": "confirmation",
                 "end": END,
             },
+        )
+
+        builder.add_edge(
+            "agent",
+            "count_tool_calls",
         )
 
         builder.add_edge(
@@ -180,6 +194,28 @@ class LangGraphAIService:
 
         return builder.compile(checkpointer=self.checkpointer)
 
+    def _count_tool_calls(
+        self,
+        state: AgentState,
+    ) -> dict:
+        tool_calls = getattr(state["messages"][-1], "tool_calls", [])
+        batch_size = len(tool_calls)
+
+        if batch_size > self.MAX_TOOL_CALLS_PER_BATCH:
+            raise ValueError(
+                "Maximum number of tool calls per batch exceeded "
+                f"({self.MAX_TOOL_CALLS_PER_BATCH})."
+            )
+
+        tool_call_count = state.get("tool_call_count", 0) + batch_size
+        if tool_call_count > self.MAX_TOOL_CALLS_PER_REQUEST:
+            raise ValueError(
+                "Maximum number of tool calls per request exceeded "
+                f"({self.MAX_TOOL_CALLS_PER_REQUEST})."
+            )
+
+        return {"tool_call_count": tool_call_count}
+
     def _route_tool_call(
         self,
         state: AgentState,
@@ -195,16 +231,25 @@ class LangGraphAIService:
         if not tool_calls:
             return "end"
 
-        tool_call = tool_calls[0]
-        tool_name = tool_call["name"]
+        tool_names = [tool_call["name"] for tool_call in tool_calls]
+        unknown_tool_names = set(tool_names) - (
+            self.read_tool_names | self.write_tool_names
+        )
+        if unknown_tool_names:
+            raise ValueError(f"Unknown tool requested: {min(unknown_tool_names)}")
 
-        if tool_name in self.write_tool_names:
+        write_tool_calls = [
+            tool_name for tool_name in tool_names if tool_name in self.write_tool_names
+        ]
+        if write_tool_calls and len(tool_calls) > 1:
+            raise ValueError(
+                "Multiple tool calls containing write actions are not supported."
+            )
+
+        if write_tool_calls:
             return "confirmation"
 
-        if tool_name in self.read_tool_names:
-            return "read_tools"
-
-        raise ValueError(f"Unknown tool requested: {tool_name}")
+        return "read_tools"
 
     def _request_confirmation(
         self,
@@ -251,7 +296,10 @@ class LangGraphAIService:
             )
         else:
             result = await self.graph.ainvoke(
-                {"messages": [HumanMessage(content=message)]},
+                {
+                    "messages": [HumanMessage(content=message)],
+                    "tool_call_count": 0,
+                },
                 config=config,
             )
 

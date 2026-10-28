@@ -14,10 +14,10 @@ class LLMClient(ABC):
     ) -> LLMResponse: ...
 
     @abstractmethod
-    async def chat_with_tool_result(
+    async def chat_with_tool_results(
         self,
         previous_response: LLMResponse,
-        tool_result: Any,
+        tool_results: list[dict[str, Any]],
         tools: list[dict] | None = None,
     ) -> LLMResponse: ...
 

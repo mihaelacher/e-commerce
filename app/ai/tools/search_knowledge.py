@@ -1,4 +1,4 @@
-from typing import ClassVar
+from typing import Any, ClassVar
 
 from app.ai.clients.embedding_base import EmbeddingClient
 from app.ai.tools.schemas import SearchKnowledgeInput
@@ -12,11 +12,15 @@ class SearchKnowledgeTool:
     input_model = SearchKnowledgeInput
     requires_confirmation = False
 
-    definition: ClassVar[dict[str, object]] = {
+    definition: ClassVar[dict[str, Any]] = {
         "name": name,
         "description": (
-            "Search store policies, FAQs, and product guides for information "
-            "relevant to the user's question."
+            "Retrieve relevant passages from store policies, FAQs, and product "
+            "guides. Use for questions about rules, terms, or eligibility, "
+            "including whether an action is allowed. When eligibility depends "
+            "on a specific order, use this together with get_order_status: this "
+            "tool provides policy information but does not check order status "
+            "or perform actions."
         ),
         "parameters": {
             "type": "object",

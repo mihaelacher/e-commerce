@@ -97,10 +97,10 @@ class GeminiClient(LLMClient):
             )
             raise
 
-    async def chat_with_tool_result(
+    async def chat_with_tool_results(
         self,
         previous_response: LLMResponse,
-        tool_result: Any,
+        tool_results: list[dict[str, Any]],
         tools: list[dict] | None = None,
     ) -> LLMResponse:
         start_time = perf_counter()
@@ -110,11 +110,12 @@ class GeminiClient(LLMClient):
                 role="user",
                 parts=[
                     types.Part.from_function_response(
-                        name=previous_response.tool_call.name,
+                        name=tool_result["name"],
                         response={
-                            "result": tool_result,
+                            "result": tool_result["result"],
                         },
                     )
+                    for tool_result in tool_results
                 ],
             )
 
@@ -201,13 +202,14 @@ class GeminiClient(LLMClient):
         state: list[types.Content],
     ) -> LLMResponse:
         if response.function_calls:
-            function_call = response.function_calls[0]
-
             return LLMResponse(
-                tool_call=ToolCall(
-                    name=function_call.name,
-                    arguments=dict(function_call.args),
-                ),
+                tool_calls=[
+                    ToolCall(
+                        name=function_call.name,
+                        arguments=dict(function_call.args),
+                    )
+                    for function_call in response.function_calls
+                ],
                 state=state,
             )
 

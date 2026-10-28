@@ -18,6 +18,7 @@ class FakeTool:
     def __init__(self, name, input_model, result=None):
         self.name = name
         self.input_model = input_model
+        self.definition = {"description": name}
         self.result = result or []
         self.calls = []
 
@@ -75,6 +76,178 @@ async def test_langgraph_returns_final_answer():
     assert result.answer == "Hello from the assistant."
     assert result.conversation_id == "final-answer"
     assert result.requires_confirmation is False
+
+
+@pytest.mark.anyio
+async def test_langgraph_executes_multiple_read_tools():
+    products_tool = FakeTool(
+        "search_products",
+        SearchProductsInput,
+        result=[{"name": "Laptop"}],
+    )
+    order_status_tool = FakeTool(
+        "get_order_status",
+        GetOrderStatusInput,
+        result={"status": "shipped"},
+    )
+    service = LangGraphAIService(
+        llm=FakeLLM(
+            [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "search_products",
+                            "args": {"query": "products"},
+                            "id": "products-1",
+                            "type": "tool_call",
+                        },
+                        {
+                            "name": "get_order_status",
+                            "args": {"order_id": 12},
+                            "id": "order-status-1",
+                            "type": "tool_call",
+                        },
+                    ],
+                ),
+                AIMessage(content="Here are products; order 12 shipped."),
+            ]
+        ),
+        search_products_tool=products_tool,
+        search_knowledge_tool=FakeTool(
+            "search_knowledge",
+            SearchKnowledgeInput,
+        ),
+        get_order_status_tool=order_status_tool,
+        cancel_order_tool=FakeTool("cancel_order", CancelOrderInput),
+        checkpointer=InMemorySaver(),
+    )
+
+    result = await service.chat(
+        message="What products do you have and what is the status of order 12?",
+        conversation_id="multiple-read-tools",
+    )
+
+    assert result.answer == "Here are products; order 12 shipped."
+    assert products_tool.calls == [
+        {
+            "query": "products",
+            "min_price": None,
+            "max_price": None,
+        }
+    ]
+    assert order_status_tool.calls == [{"order_id": 12}]
+
+
+@pytest.mark.anyio
+async def test_langgraph_limits_tool_calls_per_batch_before_execution():
+    product_tool = FakeTool("search_products", SearchProductsInput)
+    batch_size = LangGraphAIService.MAX_TOOL_CALLS_PER_BATCH + 1
+    response = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "search_products",
+                "args": {"query": f"query-{index}"},
+                "id": f"product-{index}",
+                "type": "tool_call",
+            }
+            for index in range(batch_size)
+        ],
+    )
+    service = LangGraphAIService(
+        llm=FakeLLM([response]),
+        search_products_tool=product_tool,
+        search_knowledge_tool=FakeTool("search_knowledge", SearchKnowledgeInput),
+        get_order_status_tool=FakeTool("get_order_status", GetOrderStatusInput),
+        cancel_order_tool=FakeTool("cancel_order", CancelOrderInput),
+        checkpointer=InMemorySaver(),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Maximum number of tool calls per batch exceeded \\(5\\)",
+    ):
+        await service.chat("Search repeatedly", "langgraph-tool-batch-limit")
+
+    assert product_tool.calls == []
+
+
+@pytest.mark.anyio
+async def test_langgraph_limits_total_tool_calls_per_request():
+    product_tool = FakeTool("search_products", SearchProductsInput)
+    batch_size = LangGraphAIService.MAX_TOOL_CALLS_PER_BATCH
+    responses = [
+        AIMessage(
+            content="",
+            tool_calls=[
+                {
+                    "name": "search_products",
+                    "args": {"query": f"query-{batch}-{index}"},
+                    "id": f"product-{batch}-{index}",
+                    "type": "tool_call",
+                }
+                for index in range(batch_size)
+            ],
+        )
+        for batch in range(3)
+    ]
+    service = LangGraphAIService(
+        llm=FakeLLM(responses),
+        search_products_tool=product_tool,
+        search_knowledge_tool=FakeTool("search_knowledge", SearchKnowledgeInput),
+        get_order_status_tool=FakeTool("get_order_status", GetOrderStatusInput),
+        cancel_order_tool=FakeTool("cancel_order", CancelOrderInput),
+        checkpointer=InMemorySaver(),
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Maximum number of tool calls per request exceeded \\(10\\)",
+    ):
+        await service.chat("Search repeatedly", "langgraph-tool-request-limit")
+
+    assert len(product_tool.calls) == LangGraphAIService.MAX_TOOL_CALLS_PER_REQUEST
+
+
+@pytest.mark.anyio
+async def test_langgraph_rejects_multiple_tool_calls_with_write_action():
+    cancel_tool = FakeTool("cancel_order", CancelOrderInput)
+    service = build_service(
+        FakeLLM(
+            [
+                AIMessage(
+                    content="",
+                    tool_calls=[
+                        {
+                            "name": "search_products",
+                            "args": {"query": "products"},
+                            "id": "products-before-cancel",
+                            "type": "tool_call",
+                        },
+                        {
+                            "name": "cancel_order",
+                            "args": {"order_id": 42},
+                            "id": "cancel-mixed-1",
+                            "type": "tool_call",
+                        },
+                    ],
+                )
+            ]
+        ),
+        cancel_tool,
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Multiple tool calls containing write actions are not supported",
+    ):
+        await service.chat(
+            message="Show products and cancel order 42",
+            conversation_id="mixed-read-write-tools",
+        )
+
+    assert cancel_tool.calls == []
 
 
 @pytest.mark.anyio

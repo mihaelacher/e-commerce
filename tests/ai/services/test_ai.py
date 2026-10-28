@@ -71,6 +71,7 @@ class FakeSearchProductsTool:
         self.result = result or []
         self.was_called = False
         self.arguments = None
+        self.execution_count = 0
 
     async def execute(
         self,
@@ -79,6 +80,7 @@ class FakeSearchProductsTool:
         max_price: float | None = None,
     ):
         self.was_called = True
+        self.execution_count += 1
         self.arguments = {
             "query": query,
             "min_price": min_price,
@@ -121,7 +123,7 @@ class FakeGetOrderStatusTool:
 
 class SingleToolAIClient:
     def __init__(self):
-        self.tool_result = None
+        self.tool_results = None
         self.received_state = None
 
     async def chat(
@@ -133,23 +135,25 @@ class SingleToolAIClient:
         self.received_state = state
 
         return LLMResponse(
-            tool_call=ToolCall(
-                name="search_products",
-                arguments={
-                    "query": "wireless headphones",
-                    "max_price": 150,
-                },
-            ),
+            tool_calls=[
+                ToolCall(
+                    name="search_products",
+                    arguments={
+                        "query": "wireless headphones",
+                        "max_price": 150,
+                    },
+                )
+            ],
             state=["tool-call-state"],
         )
 
-    async def chat_with_tool_result(
+    async def chat_with_tool_results(
         self,
         previous_response: LLMResponse,
-        tool_result,
+        tool_results,
         tools=None,
     ) -> LLMResponse:
-        self.tool_result = tool_result
+        self.tool_results = tool_results
 
         return LLMResponse(
             content="I recommend the Quiet Headphones.",
@@ -164,13 +168,13 @@ class SingleToolAIClient:
 
 
 class EmptyResultAIClient(SingleToolAIClient):
-    async def chat_with_tool_result(
+    async def chat_with_tool_results(
         self,
         previous_response: LLMResponse,
-        tool_result,
+        tool_results,
         tools=None,
     ) -> LLMResponse:
-        self.tool_result = tool_result
+        self.tool_results = tool_results
 
         return LLMResponse(
             content="I couldn't find any matching products.",
@@ -189,34 +193,30 @@ class MultiToolAIClient:
         state=None,
     ) -> LLMResponse:
         return LLMResponse(
-            tool_call=ToolCall(
-                name="search_products",
-                arguments={
-                    "query": "headphones",
-                    "max_price": 100,
-                },
-            ),
+            tool_calls=[
+                ToolCall(
+                    name="search_products",
+                    arguments={
+                        "query": "headphones",
+                        "max_price": 100,
+                    },
+                ),
+                ToolCall(
+                    name="get_order_status",
+                    arguments={"order_id": 42},
+                ),
+            ],
             state=["search-state"],
         )
 
-    async def chat_with_tool_result(
+    async def chat_with_tool_results(
         self,
         previous_response: LLMResponse,
-        tool_result,
+        tool_results,
         tools=None,
     ) -> LLMResponse:
         self.calls += 1
-
-        if self.calls == 1:
-            return LLMResponse(
-                tool_call=ToolCall(
-                    name="get_order_status",
-                    arguments={
-                        "order_id": 42,
-                    },
-                ),
-                state=["order-state"],
-            )
+        self.tool_results = tool_results
 
         return LLMResponse(
             content=("I found matching headphones and order 42 is processing."),
@@ -238,10 +238,12 @@ class UnknownToolAIClient:
         state=None,
     ) -> LLMResponse:
         return LLMResponse(
-            tool_call=ToolCall(
-                name="non_existing_tool",
-                arguments={},
-            ),
+            tool_calls=[
+                ToolCall(
+                    name="non_existing_tool",
+                    arguments={},
+                )
+            ],
             state=["tool-call-state"],
         )
 
@@ -260,28 +262,32 @@ class EndlessToolAIClient:
         state=None,
     ) -> LLMResponse:
         return LLMResponse(
-            tool_call=ToolCall(
-                name="search_products",
-                arguments={
-                    "query": "headphones",
-                },
-            ),
+            tool_calls=[
+                ToolCall(
+                    name="search_products",
+                    arguments={
+                        "query": "headphones",
+                    },
+                )
+            ],
             state=["state"],
         )
 
-    async def chat_with_tool_result(
+    async def chat_with_tool_results(
         self,
         previous_response: LLMResponse,
-        tool_result,
+        tool_results,
         tools=None,
     ) -> LLMResponse:
         return LLMResponse(
-            tool_call=ToolCall(
-                name="search_products",
-                arguments={
-                    "query": "headphones",
-                },
-            ),
+            tool_calls=[
+                ToolCall(
+                    name="search_products",
+                    arguments={
+                        "query": "headphones",
+                    },
+                )
+            ],
             state=["state"],
         )
 
@@ -310,19 +316,21 @@ class InvalidToolArgumentsAIClient:
         state=None,
     ) -> LLMResponse:
         return LLMResponse(
-            tool_call=ToolCall(
-                name="get_order_status",
-                arguments={
-                    "order_id": -5,
-                },
-            ),
+            tool_calls=[
+                ToolCall(
+                    name="get_order_status",
+                    arguments={
+                        "order_id": -5,
+                    },
+                )
+            ],
             state=["tool-call-state"],
         )
 
-    async def chat_with_tool_result(
+    async def chat_with_tool_results(
         self,
         previous_response: LLMResponse,
-        tool_result,
+        tool_results,
         tools=None,
     ) -> LLMResponse:
         return LLMResponse(
@@ -339,7 +347,7 @@ class InvalidToolArgumentsAIClient:
 
 class RecoveringAIClient:
     def __init__(self):
-        self.tool_result = None
+        self.tool_results = None
         self.calls = 0
 
     async def chat(
@@ -349,32 +357,36 @@ class RecoveringAIClient:
         state=None,
     ) -> LLMResponse:
         return LLMResponse(
-            tool_call=ToolCall(
-                name="get_order_status",
-                arguments={
-                    "order_id": -5,
-                },
-            ),
+            tool_calls=[
+                ToolCall(
+                    name="get_order_status",
+                    arguments={
+                        "order_id": -5,
+                    },
+                )
+            ],
             state=["invalid-tool-state"],
         )
 
-    async def chat_with_tool_result(
+    async def chat_with_tool_results(
         self,
         previous_response: LLMResponse,
-        tool_result,
+        tool_results,
         tools=None,
     ) -> LLMResponse:
         self.calls += 1
-        self.tool_result = tool_result
+        self.tool_results = tool_results
 
         if self.calls == 1:
             return LLMResponse(
-                tool_call=ToolCall(
-                    name="get_order_status",
-                    arguments={
-                        "order_id": 42,
-                    },
-                ),
+                tool_calls=[
+                    ToolCall(
+                        name="get_order_status",
+                        arguments={
+                            "order_id": 42,
+                        },
+                    )
+                ],
                 state=["corrected-tool-state"],
             )
 
@@ -434,25 +446,94 @@ class ConfirmableToolAIClient:
         state=None,
     ):
         return LLMResponse(
-            tool_call=ToolCall(
-                name="cancel_order",
-                arguments={"order_id": 42},
-            ),
+            tool_calls=[
+                ToolCall(
+                    name="cancel_order",
+                    arguments={"order_id": 42},
+                )
+            ],
             state=["tool-call-state"],
         )
 
-    async def chat_with_tool_result(
+    async def chat_with_tool_results(
         self,
         previous_response,
-        tool_result,
+        tool_results,
         tools=None,
     ):
-        self.received_tool_result = tool_result
+        self.received_tool_results = tool_results
 
         return LLMResponse(
             content="Action handled.",
             state=["final-state"],
         )
+
+    def serialize_state(self, state):
+        return state
+
+    def deserialize_state(self, state):
+        return state
+
+
+class MixedToolAIClient:
+    async def chat(
+        self,
+        message,
+        tools=None,
+        state=None,
+    ):
+        return LLMResponse(
+            tool_calls=[
+                ToolCall(
+                    name="search_products",
+                    arguments={"query": "laptop"},
+                ),
+                ToolCall(
+                    name="cancel_order",
+                    arguments={"order_id": 42},
+                ),
+            ],
+            state=["mixed-tool-call-state"],
+        )
+
+    def serialize_state(self, state):
+        return state
+
+    def deserialize_state(self, state):
+        return state
+
+
+class RepeatingBatchAIClient:
+    def __init__(self, batch_size: int, batches: int):
+        self.batch_size = batch_size
+        self.batches = batches
+        self.completed_batches = 0
+
+    def _tool_response(self):
+        return LLMResponse(
+            tool_calls=[
+                ToolCall(
+                    name="search_products",
+                    arguments={"query": f"query-{index}"},
+                )
+                for index in range(self.batch_size)
+            ],
+            state=["tool-call-state"],
+        )
+
+    async def chat(self, message, tools=None, state=None):
+        return self._tool_response()
+
+    async def chat_with_tool_results(
+        self,
+        previous_response,
+        tool_results,
+        tools=None,
+    ):
+        self.completed_batches += 1
+        if self.completed_batches < self.batches:
+            return self._tool_response()
+        return LLMResponse(content="Finished.", state=["final-state"])
 
     def serialize_state(self, state):
         return state
@@ -482,7 +563,12 @@ async def test_ai_service_passes_empty_tool_result_to_llm():
     )
 
     assert search_tool.was_called
-    assert ai_client.tool_result == []
+    assert ai_client.tool_results == [
+        {
+            "name": "search_products",
+            "result": [],
+        }
+    ]
 
     assert conversation_store.saved_state == ["final-state"]
 
@@ -521,10 +607,87 @@ async def test_ai_service_executes_multiple_tools():
 
     assert order_tool.was_called
     assert order_tool.order_id == 42
+    assert ai_client.calls == 1
+    assert [result["name"] for result in ai_client.tool_results] == [
+        "search_products",
+        "get_order_status",
+    ]
 
     assert conversation_store.saved_state == ["final-state"]
 
     assert answer == ("I found matching headphones and order 42 is processing.")
+
+
+@pytest.mark.anyio
+async def test_ai_service_rejects_batch_containing_write_action():
+    ai_client = MixedToolAIClient()
+    conversation_store = FakeConversationStore()
+    search_tool = FakeSearchProductsTool()
+    cancel_tool = ConfirmableTool()
+
+    service = AIService(
+        ai_client=ai_client,
+        conversation_store=conversation_store,
+        tools=[search_tool, cancel_tool],
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Multiple tool calls containing write actions are not supported",
+    ):
+        await service.chat(
+            message="Find a laptop and cancel order 42",
+            conversation_id="mixed-read-write-tools",
+        )
+
+    assert search_tool.was_called is False
+    assert cancel_tool.was_called is False
+    assert conversation_store.pending_tool_call is None
+
+
+@pytest.mark.anyio
+async def test_ai_service_limits_tool_calls_per_batch_before_execution():
+    ai_client = RepeatingBatchAIClient(
+        batch_size=AIService.MAX_TOOL_CALLS_PER_BATCH + 1,
+        batches=1,
+    )
+    search_tool = FakeSearchProductsTool()
+    service = AIService(
+        ai_client=ai_client,
+        conversation_store=FakeConversationStore(),
+        tools=[search_tool],
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Maximum number of tool calls per batch exceeded \\(5\\)",
+    ):
+        await service.chat("Search repeatedly", "tool-batch-limit")
+
+    assert search_tool.execution_count == 0
+
+
+@pytest.mark.anyio
+async def test_ai_service_limits_total_tool_calls_per_request():
+    batch_size = AIService.MAX_TOOL_CALLS_PER_BATCH
+    ai_client = RepeatingBatchAIClient(
+        batch_size=batch_size,
+        batches=3,
+    )
+    search_tool = FakeSearchProductsTool()
+    service = AIService(
+        ai_client=ai_client,
+        conversation_store=FakeConversationStore(),
+        tools=[search_tool],
+    )
+
+    with pytest.raises(
+        ValueError,
+        match="Maximum number of tool calls per request exceeded \\(10\\)",
+    ):
+        await service.chat("Search repeatedly", "tool-request-limit")
+
+    assert search_tool.execution_count == AIService.MAX_TOOL_CALLS_PER_REQUEST
 
 
 @pytest.mark.anyio
