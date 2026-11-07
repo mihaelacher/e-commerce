@@ -1,0 +1,132 @@
+services:
+  api:
+    build: .
+    container_name: fastapi_app
+    command: uv run fastapi run app/main.py --host 0.0.0.0 --port 8000
+    env_file:
+      - .env.docker
+    environment:
+      POSTGRES_HOST: db
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      N8N_BASE_URL: http://n8n:5678
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+      - /app/.venv
+
+  db:
+    image: pgvector/pgvector:pg15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    command: celery -A app.tasks.celery.celery_app worker --loglevel=info
+    env_file:
+      - .env.docker
+    environment:
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - db
+      - redis
+
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+
+    environment:
+      N8N_HOST: 0.0.0.0
+      N8N_PORT: 5678
+      N8N_PROTOCOL: http
+
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: db
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${N8N_DB_NAME}
+      DB_POSTGRESDB_USER: ${N8N_DB_USER}
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD}
+
+      EXECUTIONS_MODE: queue
+
+      QUEUE_BULL_REDIS_HOST: redis
+      QUEUE_BULL_REDIS_PORT: 6379
+
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+
+      N8N_CUSTOM_EXTENSIONS: /opt/n8n-custom
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-custom-nodes/n8n-nodes-customer-api:/opt/n8n-custom/n8n-nodes-customer-api:ro
+
+    depends_on:
+      - api
+      - db
+      - redis
+
+  n8n-worker:
+    image: n8nio/n8n
+    command: worker
+
+    environment:
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: db
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${N8N_DB_NAME}
+      DB_POSTGRESDB_USER: ${N8N_DB_USER}
+      DB_POSTGRESDB_PASSWORD: ${N8N_DB_PASSWORD}
+
+      EXECUTIONS_MODE: queue
+
+      QUEUE_BULL_REDIS_HOST: redis
+      QUEUE_BULL_REDIS_PORT: 6379
+
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+
+      N8N_CUSTOM_EXTENSIONS: /opt/n8n-custom
+
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n-custom-nodes/n8n-nodes-customer-api:/opt/n8n-custom/n8n-nodes-customer-api:ro
+
+    depends_on:
+      - db
+      - redis
+
+  mcp:
+    build: .
+    command: uv run python -m app.mcp.http_server
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      REDIS_URL: redis://redis:6379/0
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+  n8n_data:

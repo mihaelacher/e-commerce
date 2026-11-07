@@ -1,0 +1,54 @@
+# E-commerce API
+
+A FastAPI project for an e-commerce backend with product management, checkout flow, analytics, AI features, and workflow automation. All kind of user authentication and authorization are not implemented yet.
+
+## Features
+
+- Create, list, update, and delete products
+- Create orders and manage order items
+- Validate stock before checkout
+- Prevent double checkout and invalid order mutations
+- Calculate totals, tax, discounts, and shipping
+- Send order confirmations asynchronously through Celery
+- Sales analytics and reporting
+- Semantic product search with pgvector
+- AI integration with Gemini
+- RAG and AI tool calling
+- Multi-turn AI conversations with Redis
+- Async AI chat and semantic search
+- Order status and cancellation tools
+- Confirmation flow for destructive AI actions
+- MCP server for external AI integrations
+- n8n workflow automation
+- High-value order email notifications
+- AI-generated daily sales summaries
+- Dockerized application and services
+
+## Tech Stack
+
+- FastAPI
+- SQLAlchemy
+- PostgreSQL + pgvector
+- Celery + Redis
+- Pandas
+- Pydantic
+- Gemini
+- n8n
+- Docker
+- Pytest
+
+## Run
+
+```bash
+docker compose up -d --build
+```
+
+## Tests and AI evaluations
+
+Live evaluations require a configured `OPENAI_API_KEY`, PostgreSQL with pgvector,
+and a reachable test database. Tool-selection evaluation reports tool,
+argument, and overall case accuracy. Product retrieval reports Precision@5,
+Recall@5, MRR@5, and no-answer accuracy against a small isolated candidate
+catalog. Precision, recall, and MRR are averaged over queries with expected
+matches; no-answer queries are reported separately. Knowledge retrieval is also
+checked against expected policy evidence. `GEMINI_API_KEY` is not needed for these OpenAI evaluations; it is required only when using the Gemini-backed application clients.

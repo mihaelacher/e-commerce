@@ -1,0 +1,434 @@
+{
+  "name": "Order Create Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "order-created",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1120,
+        96
+      ],
+      "id": "6677d17c-ee7e-4fee-a69c-001393974d56",
+      "name": "Webhook",
+      "webhookId": "3236760b-e5e1-49e1-9c20-69ff9243f55d"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2ee94222-f9b3-4ede-9783-95ef487033c5",
+              "leftValue": "={{$('Webhook').item.json.body.total}}",
+              "rightValue": 500,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -224,
+        96
+      ],
+      "id": "b48b05f7-45a3-428f-9e55-e291a4f50dd7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "=http://api:8000/orders/{{$('Webhook').item.json.body.order_id}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cdec7161-ff6d-4ac8-b409-3421a6750ea6",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const order = $input.first().json;\nconst items = order.items;\n\nconst totalItems = items.reduce(\n  (sum, item) => sum + item.quantity,\n  0\n);\n\nreturn [\n  {\n    json: {\n      order_id: order.id,\n      status: order.status,\n      email: order.email,\n      total_items: totalItems,\n      subtotal: order.subtotal,\n      total: order.total,\n      tax: order.tax,\n      shipping: order.shipping,\n      discount: order.discount,\n      products: items.map(item => ({\n        product_id: item.product_id,\n        quantity: item.quantity,\n        unit_price: item.unit_price,\n        total_price: item.total_price,\n      })),\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        0
+      ],
+      "id": "2baa3162-5fcb-4f7f-94c0-cfff875758ba",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "fromEmail": "example@gmail.com",
+        "toEmail": "example",
+        "subject": "=High-value order #{{$json.order_id}}",
+        "emailFormat": "text",
+        "text": "=A high-value order has been received.\n\nOrder: #{{$json.order_id}}\nCustomer: {{$json.email}}\nStatus: {{$json.status}}\nTotal: {{$json.total}}\nNumber of items: {{$json.total_items}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        448,
+        0
+      ],
+      "id": "629d8378-1958-423a-90ae-86632417ddb3",
+      "name": "Send an Email",
+      "webhookId": "92cf15ec-a8ff-44e8-9905-5acbb24506b6",
+      "retryOnFail": true,
+      "credentials": {
+        "smtp": {
+          "id": "o7Uqwy858u6vSADe",
+          "name": "SMTP account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "key": "=n8n:order-created:{{$('Webhook').item.json.body.order_id}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -896,
+        96
+      ],
+      "id": "63fcdaa0-1747-4c31-a7dc-c0c7c772559e",
+      "name": "Redis",
+      "credentials": {
+        "redis": {
+          "id": "eEmTOdS1QXgkealq",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=n8n:order-created:{{$('Webhook').item.json.body.order_id}}",
+        "value": "processing",
+        "expire": true,
+        "ttl": 600
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        -448,
+        96
+      ],
+      "id": "4eba765a-64d6-4c4c-b54c-abc71cd63ca5",
+      "name": "Redis1",
+      "credentials": {
+        "redis": {
+          "id": "eEmTOdS1QXgkealq",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=n8n:order-created:{{$('Webhook').item.json.body.order_id}}",
+        "value": "completed",
+        "expire": true,
+        "ttl": 604800
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        672,
+        -112
+      ],
+      "id": "f8e8c169-0e78-4a14-a4eb-1e53219858fe",
+      "name": "Redis2",
+      "credentials": {
+        "redis": {
+          "id": "eEmTOdS1QXgkealq",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "=n8n:order-created:{{$('Webhook').item.json.body.order_id}}",
+        "value": "email_failed",
+        "expire": true,
+        "ttl": 604800
+      },
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        672,
+        96
+      ],
+      "id": "5280d4fb-c214-4076-b7fa-8394c1618d09",
+      "name": "Redis3",
+      "credentials": {
+        "redis": {
+          "id": "eEmTOdS1QXgkealq",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{$json.propertyName}}",
+                    "rightValue": "processing",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "e2d502d7-eaab-40d5-a0d5-ff23a04b15cd"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "processing"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "0a54ea21-8507-487e-9fca-96ec329bb2bf",
+                    "leftValue": "={{$json.propertyName}}",
+                    "rightValue": "email_failed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "email_failed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "ed08af54-c888-45ba-a1dc-021e901390e0",
+                    "leftValue": "={{$json.propertyName}}",
+                    "rightValue": "completed",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "completed"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "d1722a40-e449-4665-a43a-6eb457bab4c1",
+                    "leftValue": "={{$json.propertyName}}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "empty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "new"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -704,
+        16
+      ],
+      "id": "84c44363-9293-47e6-9b86-ab4abb257dba",
+      "name": "Switch"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Redis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [
+          {
+            "node": "Redis2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Redis3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [],
+        [
+          {
+            "node": "Redis1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "b29f4e1b-7b2c-4ab8-a04f-024b624438b3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3d6d9db7527b4a3a10ab9ce8a2b863a78cd0d9bbc08d258337a280bfb496c6c0"
+  },
+  "nodeGroups": [],
+  "id": "wyCpLoajtDViajoX",
+  "tags": []
+}

@@ -1,0 +1,30 @@
+{
+  "name": "n8n-nodes-customer-api",
+  "version": "1.0.0",
+  "description": "n8n custom node for the Customer API",
+  "main": "dist/nodes/CustomerApi/CustomerApi.node.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "keywords": [
+    "n8n-community-node-package"
+  ],
+  "license": "MIT",
+  "n8n": {
+    "n8nNodesApiVersion": 1,
+    "credentials": [
+      "dist/credentials/CustomerApi.credentials.js"
+    ],
+    "nodes": [
+      "dist/nodes/CustomerApi/CustomerApi.node.js"
+    ]
+  },
+  "dependencies": {
+    "n8n-workflow": "^2.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "typescript": "^7.0.2"
+  }
+}

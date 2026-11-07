@@ -1,0 +1,53 @@
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, Header, HTTPException
+from sqlalchemy.orm import Session
+
+from app.core.database import get_db
+from app.core.dependencies.payment import get_payment_provider
+from app.providers.payment.base import PaymentGateway
+from app.schemas.payment import PaymentResponse
+from app.services.payment import create_payment, handle_payment_webhook
+
+router = APIRouter(
+    prefix="/payments",
+    tags=["Payments"],
+)
+
+
+@router.post(
+    "/orders/{order_id}",
+    response_model=PaymentResponse,
+)
+def pay_order(
+    order_id: int,
+    idempotency_key: Annotated[str, Header(alias="Idempotency-Key")],
+    db: Annotated[Session, Depends(get_db)],
+    provider: Annotated[PaymentGateway, Depends(get_payment_provider)],
+) -> PaymentResponse:
+    return create_payment(
+        db=db,
+        order_id=order_id,
+        idempotency_key=idempotency_key,
+        provider=provider,
+    )
+
+
+@router.post("/webhook")
+def payment_webhook(
+    payload: dict,
+    signature: Annotated[str, Header(alias="X-Webhook-Signature")],
+    db: Annotated[Session, Depends(get_db)],
+    provider: Annotated[PaymentGateway, Depends(get_payment_provider)],
+) -> PaymentResponse:
+    if not provider.verify_webhook(payload, signature):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid webhook signature",
+        )
+
+    return handle_payment_webhook(
+        db=db,
+        payload=payload,
+        provider=provider,
+    )

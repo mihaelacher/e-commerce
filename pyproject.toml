@@ -1,0 +1,42 @@
+[project]
+name = "ecommerce-api"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "alembic>=1.19.1",
+    "asyncpg>=0.31.0",
+    "celery[redis]>=5.6.3",
+    "fastapi[standard]>=0.141.1",
+    "google-genai>=2.20.0",
+    "langchain>=1.4.0",
+    "langchain-openai>=1.6.2",
+    "langgraph>=1.2.11",
+    "langgraph-checkpoint-postgres>=3.2.0",
+    "mcp[cli]>=2.1.1",
+    "openai>=3.5.0",
+    "pandas>=3.0.5",
+    "pgvector>=0.5.0",
+    "psycopg2-binary>=2.9.12",
+    "psycopg[binary]>=3.3.4",
+    "pydantic-settings>=2.15.0",
+    "redis>=6.4.0",
+    "sqlalchemy>=2.0.52",
+]
+
+[dependency-groups]
+dev = [
+    "black>=26.5.1",
+    "deepeval>=4.2.0",
+    "faker>=40.36.0",
+    "httpx>=0.28.1",
+    "pytest>=9.1.1",
+    "ruff>=0.16.3",
+]
+
+[tool.pytest.ini_options]
+addopts = "-m 'not eval'"
+markers = [
+    "eval: tests that call live AI providers and may incur cost",
+]
