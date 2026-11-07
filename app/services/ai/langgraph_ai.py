@@ -1,10 +1,13 @@
-import asyncio
-import json
+from collections.abc import AsyncIterator
 from time import perf_counter
 from typing import Annotated, Any, TypedDict
 
-from collections.abc import AsyncIterator
-from langchain_core.messages import AnyMessage, HumanMessage, SystemMessage, AIMessageChunk
+from langchain_core.messages import (
+    AIMessageChunk,
+    AnyMessage,
+    HumanMessage,
+    SystemMessage,
+)
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
@@ -340,87 +343,83 @@ class LangGraphAIService:
                 "tool_call_count": 0,
             }
 
-        try:
-            async for chunk, metadata in self.graph.astream(
-                graph_input,
-                config=config,
-                stream_mode="messages",
-            ):
-                logger.info(
-                    "STREAM DEBUG | node=%s | chunk_type=%s | content=%r | tool_call_chunks=%r",
-                    metadata.get("langgraph_node"),
-                    type(chunk).__name__,
-                    repr(getattr(chunk, "content", None))[:300],
-                    repr(getattr(chunk, "tool_call_chunks", []))[:300],
+        async for chunk, metadata in self.graph.astream(
+            graph_input,
+            config=config,
+            stream_mode="messages",
+        ):
+            logger.info(
+                "STREAM DEBUG | node=%s | chunk_type=%s | content=%r | tool_call_chunks=%r",
+                metadata.get("langgraph_node"),
+                type(chunk).__name__,
+                repr(getattr(chunk, "content", None))[:300],
+                repr(getattr(chunk, "tool_call_chunks", []))[:300],
+            )
+            
+            if metadata.get("langgraph_node") != "agent":
+                continue
+
+            if not isinstance(chunk, AIMessageChunk):
+                continue
+
+            content = chunk.content
+
+            if isinstance(content, str):
+                text = content
+            elif isinstance(content, list):
+                text = "".join(
+                    block.get("text", "")
+                    for block in content
+                    if isinstance(block, dict)
+                    and block.get("type") == "text"
                 )
-                
-                if metadata.get("langgraph_node") != "agent":
-                    continue
+            else:
+                text = ""
 
-                if not isinstance(chunk, AIMessageChunk):
-                    continue
-
-                content = chunk.content
-
-                if isinstance(content, str):
-                    text = content
-                elif isinstance(content, list):
-                    text = "".join(
-                        block.get("text", "")
-                        for block in content
-                        if isinstance(block, dict)
-                        and block.get("type") == "text"
-                    )
-                else:
-                    text = ""
-
-                if text:
-                    yield {
-                        "event": "token",
-                        "data": {"text": text},
-                    }
-
-            snapshot = await self.graph.aget_state(config)
-            state = snapshot.values or {}
-
-            interrupts = [
-                interrupt
-                for task in snapshot.tasks
-                for interrupt in task.interrupts
-            ]
-
-            if interrupts:
-                interrupt_data = interrupts[0].value
-
+            if text:
                 yield {
-                    "event": "confirmation",
-                    "data": {
-                        "question": interrupt_data["question"],
-                        "tool": interrupt_data["tool"],
-                        "arguments": interrupt_data["arguments"],
-                    },
+                    "event": "token",
+                    "data": {"text": text},
                 }
 
-                yield {
-                    "event": "done",
-                    "data": {
-                        "conversation_id": conversation_id,
-                        "requires_confirmation": True,
-                    },
-                }
-                return
+        snapshot = await self.graph.aget_state(config)
+        state = snapshot.values or {}
+
+        interrupts = [
+            interrupt
+            for task in snapshot.tasks
+            for interrupt in task.interrupts
+        ]
+
+        if interrupts:
+            interrupt_data = interrupts[0].value
+
+            yield {
+                "event": "confirmation",
+                "data": {
+                    "question": interrupt_data["question"],
+                    "tool": interrupt_data["tool"],
+                    "arguments": interrupt_data["arguments"],
+                },
+            }
 
             yield {
                 "event": "done",
                 "data": {
                     "conversation_id": conversation_id,
-                    "answer": state.get("answer", ""),
-                    "requires_confirmation": state.get(
-                        "requires_confirmation",
-                        False,
-                    ),
+                    "requires_confirmation": True,
                 },
             }
+            return
 
-        except asyncio.CancelledError:
-            raise
+        yield {
+            "event": "done",
+            "data": {
+                "conversation_id": conversation_id,
+                "answer": state.get("answer", ""),
+                "requires_confirmation": state.get(
+                    "requires_confirmation",
+                    False,
+                ),
+            },
+        }
